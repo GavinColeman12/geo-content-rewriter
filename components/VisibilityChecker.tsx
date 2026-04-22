@@ -1533,40 +1533,131 @@ function VerdictBadge({ verdict }: { verdict: "hit" | "partial" | "miss" }) {
   );
 }
 
+function renderInline(text: string, keyBase: string): React.ReactNode {
+  // Handles **bold** and `code` inline. Returns an array of React nodes.
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let last = 0;
+  let i = 0;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const token = m[0];
+    if (token.startsWith("**")) {
+      parts.push(
+        <strong key={`${keyBase}-b-${i++}`} className="font-semibold text-stone-900">
+          {token.slice(2, -2)}
+        </strong>,
+      );
+    } else {
+      parts.push(
+        <code
+          key={`${keyBase}-c-${i++}`}
+          className="rounded bg-stone-100 px-1 py-0.5 text-[0.9em] text-stone-800"
+        >
+          {token.slice(1, -1)}
+        </code>,
+      );
+    }
+    last = m.index + token.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length > 0 ? parts : text;
+}
+
 function AnalysisMarkdown({ text }: { text: string }) {
   const blocks: React.ReactNode[] = [];
   const lines = text.split("\n");
-  let buf: string[] = [];
+  let para: string[] = [];
+  let ulItems: string[] = [];
+  let olItems: string[] = [];
   let key = 0;
 
-  const flush = () => {
-    if (buf.length === 0) return;
-    const joined = buf.join("\n").trim();
+  const flushPara = () => {
+    if (para.length === 0) return;
+    const joined = para.join(" ").trim();
     if (joined) {
       blocks.push(
-        <p key={key++} className="whitespace-pre-wrap text-sm leading-relaxed text-stone-800">
-          {joined}
+        <p
+          key={key++}
+          className="text-sm leading-relaxed text-stone-800"
+        >
+          {renderInline(joined, `p-${key}`)}
         </p>,
       );
     }
-    buf = [];
+    para = [];
+  };
+  const flushUl = () => {
+    if (ulItems.length === 0) return;
+    blocks.push(
+      <ul
+        key={key++}
+        className="ml-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+      >
+        {ulItems.map((it, i) => (
+          <li key={i}>{renderInline(it, `ul-${key}-${i}`)}</li>
+        ))}
+      </ul>,
+    );
+    ulItems = [];
+  };
+  const flushOl = () => {
+    if (olItems.length === 0) return;
+    blocks.push(
+      <ol
+        key={key++}
+        className="ml-1 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+      >
+        {olItems.map((it, i) => (
+          <li key={i}>{renderInline(it, `ol-${key}-${i}`)}</li>
+        ))}
+      </ol>,
+    );
+    olItems = [];
+  };
+  const flushAll = () => {
+    flushPara();
+    flushUl();
+    flushOl();
   };
 
-  for (const line of lines) {
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, "");
     if (line.startsWith("## ")) {
-      flush();
+      flushAll();
       blocks.push(
         <h3
           key={key++}
-          className="mt-5 text-sm font-semibold uppercase tracking-wide text-stone-900 first:mt-0"
+          className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-stone-900 first:mt-0"
         >
           {line.slice(3)}
         </h3>,
       );
-    } else {
-      buf.push(line);
+      continue;
     }
+    const ulMatch = line.match(/^\s*[-*]\s+(.*)$/);
+    if (ulMatch) {
+      flushPara();
+      flushOl();
+      ulItems.push(ulMatch[1]);
+      continue;
+    }
+    const olMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (olMatch) {
+      flushPara();
+      flushUl();
+      olItems.push(olMatch[1]);
+      continue;
+    }
+    if (line.trim() === "") {
+      flushAll();
+      continue;
+    }
+    flushUl();
+    flushOl();
+    para.push(line);
   }
-  flush();
-  return <div className="space-y-2">{blocks}</div>;
+  flushAll();
+  return <div className="space-y-3">{blocks}</div>;
 }

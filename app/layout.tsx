@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GEO Content Rewriter — make your site discoverable by AI search",
+  title: "GEO Toolkit — visibility audit + AI-search rewriter",
   description:
-    "Rewrite your website copy for ChatGPT, Perplexity, Claude, and Google AI Overviews. Get a side-by-side rewrite, suggested FAQs, and JSON-LD schema in under a minute.",
+    "Drop your URL. Get a visibility score showing how often you surface in ChatGPT, Perplexity, and Claude for the queries your customers actually ask — plus a side-by-side rewrite with FAQs and JSON-LD schema to close the gaps.",
+  openGraph: {
+    title: "GEO Toolkit — visibility audit + AI-search rewriter",
+    description:
+      "How often does your business appear in AI search? Get a score, the queries you're missing, and the rewrite that fixes it.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
