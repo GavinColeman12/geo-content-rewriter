@@ -279,6 +279,15 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     p75: number | null;
     p25: number | null;
   } | null>(null);
+  const [similar, setSimilar] = useState<
+    Array<{
+      id: string;
+      url: string;
+      profileName: string | null;
+      overall: number;
+      createdAt: string;
+    }>
+  >([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyGroups, setHistoryGroups] = useState<
     Array<{ key: string; url: string; runs: HistoryEntry[] }>
@@ -330,6 +339,29 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       // ignore malformed state
     }
   }, []);
+
+  // Fetch similar audits once we have a persisted audit ID.
+  useEffect(() => {
+    if (!auditId) {
+      setSimilar([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/audit/${auditId}/similar`, {
+          cache: "no-store",
+        });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (cancelled) return;
+        setSimilar(data.items ?? []);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [auditId]);
 
   // Fetch industry benchmark once we have a detection + score.
   useEffect(() => {
@@ -478,6 +510,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     setRestoredAt(null);
     setCacheInfo(null);
     setAuditId(null);
+    setSimilar([]);
 
     try {
       const r = await fetch("/api/visibility", {
@@ -786,6 +819,14 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           competitors={competitors}
           queries={queries}
           totalQueries={queries.length}
+        />
+      )}
+
+      {similar.length > 0 && score && (
+        <SimilarBusinessesPanel
+          items={similar}
+          anchorScore={score.overall}
+          industry={detection?.used ?? industry}
         />
       )}
 
@@ -1408,6 +1449,103 @@ function CompetitorPanel({
                 ))}
               </div>
             </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SimilarBusinessesPanel({
+  items,
+  anchorScore,
+  industry,
+}: {
+  items: Array<{
+    id: string;
+    url: string;
+    profileName: string | null;
+    overall: number;
+    createdAt: string;
+  }>;
+  anchorScore: number;
+  industry: Industry;
+}) {
+  const industryLabel =
+    INDUSTRIES.find((i) => i.value === industry)?.label ?? industry;
+
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+          Similar businesses we&apos;ve audited
+        </h2>
+        <span className="text-xs text-stone-500">
+          {industryLabel.toLowerCase()} · sorted by score proximity
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-stone-600">
+        Other {industryLabel.toLowerCase()} audits with scores closest to
+        yours ({anchorScore}). Click one to see the full report — which queries
+        they won, who beat them, what they&apos;re missing.
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {items.map((it) => {
+          const diff = it.overall - anchorScore;
+          let host = "";
+          try {
+            host = new URL(it.url).hostname.replace(/^www\./i, "");
+          } catch {
+            host = it.url;
+          }
+          const badge =
+            diff > 3
+              ? {
+                  text: `+${diff}`,
+                  cls: "bg-emerald-100 text-emerald-700",
+                }
+              : diff < -3
+                ? { text: `${diff}`, cls: "bg-red-100 text-red-700" }
+                : { text: "≈", cls: "bg-stone-100 text-stone-600" };
+          return (
+            <a
+              key={it.id}
+              href={`/a/${it.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex items-start gap-3 rounded-lg border border-stone-200 bg-white px-4 py-3 transition hover:border-stone-400"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`}
+                alt=""
+                className="mt-0.5 h-5 w-5 shrink-0 rounded"
+                loading="lazy"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-sm font-medium text-stone-900">
+                    {it.profileName || host}
+                  </span>
+                </div>
+                <div className="truncate text-[11px] text-stone-500">
+                  {host}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-sm font-semibold text-stone-900 tabular-nums">
+                  {it.overall}
+                </div>
+                <span
+                  className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${badge.cls}`}
+                >
+                  {badge.text}
+                </span>
+              </div>
+              <span className="shrink-0 self-center text-stone-300 transition group-hover:text-stone-500">
+                ›
+              </span>
+            </a>
           );
         })}
       </div>

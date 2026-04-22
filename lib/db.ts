@@ -186,6 +186,48 @@ export async function getMostRecentAuditForUrl(
   return rowToAudit(rows[0]);
 }
 
+export type SimilarAudit = {
+  id: string;
+  url: string;
+  profileName: string | null;
+  overall: number;
+  createdAt: Date;
+};
+
+export async function getSimilarAudits(
+  industry: string,
+  score: number,
+  excludeUrlKey: string,
+  limit: number = 5,
+): Promise<SimilarAudit[]> {
+  await ensureSchema();
+  const sql = getSql();
+  // Rank by score-distance to the given score, ascending, within the same
+  // industry, excluding the same URL. Only real audits (not mock seed rows
+  // with empty queries arrays).
+  const rows = (await sql`
+    SELECT
+      id,
+      url,
+      profile->>'name' AS profile_name,
+      (score->>'overall')::int AS overall,
+      created_at
+    FROM audits
+    WHERE industry = ${industry}
+      AND url_key <> ${excludeUrlKey}
+      AND jsonb_array_length(queries) > 0
+    ORDER BY ABS((score->>'overall')::int - ${score}) ASC, created_at DESC
+    LIMIT ${limit}
+  `) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: r.id as string,
+    url: r.url as string,
+    profileName: (r.profile_name as string) ?? null,
+    overall: Number(r.overall),
+    createdAt: new Date(r.created_at as string),
+  }));
+}
+
 export async function getBenchmarkForIndustry(
   industry: string,
 ): Promise<{
