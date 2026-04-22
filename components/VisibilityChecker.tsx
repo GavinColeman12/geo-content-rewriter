@@ -70,6 +70,13 @@ type CompetitorDomain = {
   queriesWonIndices: number[];
 };
 
+type IndustryDetection = {
+  detected: Industry;
+  confidence: "high" | "medium" | "low";
+  used: Industry;
+  source: "user" | "detected";
+};
+
 type Phase =
   | "idle"
   | "scraping"
@@ -111,6 +118,8 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [score, setScore] = useState<Score | null>(null);
   const [competitors, setCompetitors] = useState<CompetitorDomain[]>([]);
   const [analysis, setAnalysis] = useState("");
+  const [autoIndustry, setAutoIndustry] = useState(true);
+  const [detection, setDetection] = useState<IndustryDetection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const valid = looksLikeUrl(url);
@@ -153,6 +162,9 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       case "competitors":
         setCompetitors(evt.data as CompetitorDomain[]);
         break;
+      case "industry_detected":
+        setDetection(evt.data as IndustryDetection);
+        break;
       case "analysis_delta":
         setAnalysis((prev) => prev + (evt.text as string));
         break;
@@ -172,13 +184,14 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     setScore(null);
     setCompetitors([]);
     setAnalysis("");
+    setDetection(null);
     setError(null);
 
     try {
       const r = await fetch("/api/visibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, industry, city }),
+        body: JSON.stringify({ url, industry, city, autoIndustry }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
@@ -240,14 +253,26 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-medium text-stone-700">
-                Your business type
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="text-sm font-medium text-stone-700">
+                  Your business type
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-stone-500">
+                  <input
+                    type="checkbox"
+                    checked={autoIndustry}
+                    onChange={(e) => setAutoIndustry(e.target.checked)}
+                    disabled={isRunning}
+                    className="h-3 w-3 rounded border-stone-400 text-stone-900 focus:ring-stone-900/20"
+                  />
+                  auto-detect
+                </label>
+              </div>
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value as Industry)}
-                className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
-                disabled={isRunning}
+                className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-60"
+                disabled={isRunning || autoIndustry}
               >
                 {INDUSTRIES.map((i) => (
                   <option key={i.value} value={i.value}>
@@ -255,6 +280,40 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                   </option>
                 ))}
               </select>
+              {autoIndustry && !detection && (
+                <p className="mt-1 text-[11px] text-stone-500">
+                  We&apos;ll detect from the page.
+                </p>
+              )}
+              {detection && (
+                <p className="mt-1 text-[11px] text-stone-600">
+                  {detection.source === "detected" ? (
+                    <>
+                      Detected:{" "}
+                      <span className="font-medium text-stone-900">
+                        {INDUSTRIES.find((i) => i.value === detection.used)
+                          ?.label ?? detection.used}
+                      </span>{" "}
+                      <span className="text-stone-400">
+                        ({detection.confidence} confidence)
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Using your selection{" "}
+                      {detection.confidence !== "low" && (
+                        <span className="text-stone-400">
+                          (detector also suggested{" "}
+                          {INDUSTRIES.find(
+                            (i) => i.value === detection.detected,
+                          )?.label ?? detection.detected}
+                          )
+                        </span>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-stone-700">
@@ -816,53 +875,98 @@ function QueryRow({
         )}
       </summary>
       {result && (
-        <div className="border-t border-stone-100 px-4 py-3 text-sm">
+        <div className="border-t border-stone-100 px-4 py-4 text-sm">
           {result.error ? (
             <div className="text-red-700">Error: {result.error}</div>
           ) : (
             <>
-              <div className="mb-2 whitespace-pre-wrap text-stone-800">
+              <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                What AI answered
+              </div>
+              <div className="mb-4 whitespace-pre-wrap rounded-lg bg-stone-50 px-3 py-2.5 text-sm leading-relaxed text-stone-800">
                 {result.answerText}
               </div>
               {result.citations.length > 0 && (
-                <div className="mt-2">
-                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-stone-500">
-                    Sources cited
+                <>
+                  <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                    Sources cited ({result.citations.length})
                   </div>
-                  <ul className="space-y-1">
-                    {result.citations.map((c, i) => {
-                      const matched =
-                        result.presence.matchedCitationUrls.includes(c.url);
-                      return (
-                        <li key={i} className="text-xs">
-                          <a
-                            href={c.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={
-                              matched
-                                ? "font-medium text-emerald-700 underline underline-offset-2"
-                                : "text-stone-600 hover:underline"
-                            }
-                          >
-                            {c.title || c.url}
-                          </a>
-                          {matched && (
-                            <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
-                              that&apos;s you
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {result.citations.map((c, i) => (
+                      <CitationCard
+                        key={i}
+                        url={c.url}
+                        title={c.title || ""}
+                        matched={result.presence.matchedCitationUrls.includes(
+                          c.url,
+                        )}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
             </>
           )}
         </div>
       )}
     </details>
+  );
+}
+
+function CitationCard({
+  url,
+  title,
+  matched,
+}: {
+  url: string;
+  title: string;
+  matched: boolean;
+}) {
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./i, "");
+  } catch {
+    host = url;
+  }
+  const favicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={`group flex items-start gap-2.5 rounded-lg border px-3 py-2 transition ${
+        matched
+          ? "border-emerald-300 bg-emerald-50 hover:border-emerald-400"
+          : "border-stone-200 bg-white hover:border-stone-300"
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={favicon}
+        alt=""
+        className="mt-0.5 h-4 w-4 shrink-0 rounded"
+        loading="lazy"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[10px] font-medium uppercase tracking-wide text-stone-500">
+            {host}
+          </span>
+          {matched && (
+            <span className="shrink-0 rounded bg-emerald-600 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+              you
+            </span>
+          )}
+        </div>
+        <div
+          className={`mt-0.5 line-clamp-2 text-xs font-medium ${
+            matched ? "text-emerald-900" : "text-stone-900 group-hover:text-stone-700"
+          }`}
+        >
+          {title || url}
+        </div>
+      </div>
+    </a>
   );
 }
 

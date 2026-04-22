@@ -6,6 +6,108 @@ export type Industry =
   | "home_services"
   | "other";
 
+export function detectIndustryHeuristic(text: string): {
+  industry: Industry;
+  confidence: "high" | "medium" | "low";
+} {
+  const t = text.toLowerCase();
+  const score = {
+    dental: 0,
+    medical: 0,
+    law_firm: 0,
+    medspa: 0,
+    home_services: 0,
+  };
+  const kw = (arr: string[], key: keyof typeof score, w = 1) => {
+    for (const k of arr) {
+      if (t.includes(k)) score[key] += w;
+    }
+  };
+  kw(
+    ["dentist", "dental", "orthodontist", "invisalign", "teeth", "tooth", "hygienist", "crown", "filling", "cavity"],
+    "dental",
+    2,
+  );
+  kw(
+    [
+      "botox",
+      "filler",
+      "medspa",
+      "med spa",
+      "aesthetic",
+      "coolsculpting",
+      "laser hair",
+      "chemical peel",
+      "microneedling",
+    ],
+    "medspa",
+    2,
+  );
+  kw(
+    [
+      "attorney",
+      "lawyer",
+      "law firm",
+      "legal",
+      "litigation",
+      "plaintiff",
+      "defendant",
+      "personal injury",
+      "divorce attorney",
+      "estate planning",
+    ],
+    "law_firm",
+    2,
+  );
+  kw(
+    [
+      "plumber",
+      "plumbing",
+      "hvac",
+      "air conditioning",
+      "electrician",
+      "roofing",
+      "roofer",
+      "water heater",
+      "furnace",
+      "emergency plumber",
+    ],
+    "home_services",
+    2,
+  );
+  kw(
+    [
+      "doctor",
+      "physician",
+      "clinic",
+      "primary care",
+      "pediatric",
+      "medical practice",
+      "urgent care",
+      "family medicine",
+      "annual physical",
+    ],
+    "medical",
+    2,
+  );
+  kw(["general dentistry", "cosmetic dentistry", "family dentist"], "dental", 1);
+  kw(["cosmetic injections", "dermal filler"], "medspa", 1);
+
+  const entries = Object.entries(score) as Array<[keyof typeof score, number]>;
+  entries.sort((a, b) => b[1] - a[1]);
+  const [top, second] = entries;
+  if (!top || top[1] === 0) {
+    return { industry: "other", confidence: "low" };
+  }
+  const confidence =
+    top[1] >= 6 && top[1] >= (second?.[1] ?? 0) * 2
+      ? "high"
+      : top[1] >= 3
+        ? "medium"
+        : "low";
+  return { industry: top[0] as Industry, confidence };
+}
+
 export const INDUSTRIES: { value: Industry; label: string }[] = [
   { value: "dental", label: "Dental Practice" },
   { value: "medical", label: "Medical / Clinic" },

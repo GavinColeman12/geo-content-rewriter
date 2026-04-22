@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getClient, CLAUDE_MODEL } from "@/lib/anthropic";
-import { INDUSTRIES, type Industry } from "@/lib/industryPrompts";
+import {
+  INDUSTRIES,
+  detectIndustryHeuristic,
+  type Industry,
+} from "@/lib/industryPrompts";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { scrapeUrl } from "@/lib/scraper";
 import { generateQueries } from "@/lib/queryGeneration";
@@ -15,6 +19,7 @@ type Body = {
   url: string;
   industry: Industry;
   city: string;
+  autoIndustry?: boolean;
 };
 
 const DELIM = "\u001E";
@@ -26,7 +31,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const { url, industry, city } = body;
+  const { url, industry, city, autoIndustry } = body;
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "Please provide a URL." }, { status: 400 });
   }
@@ -73,10 +78,29 @@ export async function POST(req: Request) {
           },
         });
 
+        const detection = detectIndustryHeuristic(
+          [scraped.title, scraped.h1.join(" "), scraped.bodyText].join("\n"),
+        );
+        const effectiveIndustry: Industry =
+          autoIndustry && detection.confidence !== "low"
+            ? detection.industry
+            : industry;
+        const source: "user" | "detected" =
+          autoIndustry && detection.confidence !== "low" ? "detected" : "user";
+        send(controller, {
+          type: "industry_detected",
+          data: {
+            detected: detection.industry,
+            confidence: detection.confidence,
+            used: effectiveIndustry,
+            source,
+          },
+        });
+
         send(controller, { type: "phase", phase: "generating_queries" });
         const { profile, queries } = await generateQueries(
           scraped,
-          industry,
+          effectiveIndustry,
           city,
           6,
         );
