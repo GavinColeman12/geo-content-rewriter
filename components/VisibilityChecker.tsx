@@ -816,8 +816,15 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
             navigator.clipboard.writeText(md);
           }}
           onCopyShareLink={() => {
-            const p = new URLSearchParams({ url, industry, city });
-            const link = `${window.location.origin}${window.location.pathname}?${p}`;
+            let link: string;
+            if (auditId) {
+              // Permalink to the exact persisted audit
+              link = `${window.location.origin}/a/${auditId}`;
+            } else {
+              // Fallback: prefill the form for a fresh run
+              const p = new URLSearchParams({ url, industry, city });
+              link = `${window.location.origin}${window.location.pathname}?${p}`;
+            }
             navigator.clipboard.writeText(link);
             setLinkCopied(true);
             setTimeout(() => setLinkCopied(false), 2000);
