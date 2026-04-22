@@ -11,6 +11,7 @@ import { generateQueries } from "@/lib/queryGeneration";
 import { runClaudeWebSearch } from "@/lib/visibilityEngine";
 import { scoreResults } from "@/lib/visibilityScoring";
 import { extractCompetitors } from "@/lib/competitorAnalysis";
+import { getMostRecentAuditForUrl, saveAudit } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -20,9 +21,11 @@ type Body = {
   industry: Industry;
   city: string;
   autoIndustry?: boolean;
+  forceFresh?: boolean;
 };
 
 const DELIM = "\u001E";
+const CACHE_HOURS = Number(process.env.AUDIT_CACHE_HOURS ?? "24");
 
 export async function POST(req: Request) {
   let body: Body;
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const { url, industry, city, autoIndustry } = body;
+  const { url, industry, city, autoIndustry, forceFresh } = body;
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "Please provide a URL." }, { status: 400 });
   }
@@ -47,14 +50,6 @@ export async function POST(req: Request) {
     );
   }
 
-  let client;
-  try {
-    client = getClient();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
-
   const encoder = new TextEncoder();
   const send = (
     controller: ReadableStreamDefaultController<Uint8Array>,
@@ -63,20 +58,86 @@ export async function POST(req: Request) {
     controller.enqueue(encoder.encode(DELIM + JSON.stringify(event) + DELIM));
   };
 
+  // Cache-first: if there's a recent audit for this URL, replay it.
+  if (!forceFresh && process.env.DATABASE_URL) {
+    try {
+      const cached = await getMostRecentAuditForUrl(url, CACHE_HOURS);
+      if (cached) {
+        const ageMin = Math.round(
+          (Date.now() - cached.createdAt.getTime()) / 60000,
+        );
+        const replay = new ReadableStream({
+          async start(controller) {
+            send(controller, {
+              type: "cached",
+              data: {
+                id: cached.id,
+                ageMinutes: ageMin,
+                createdAt: cached.createdAt.toISOString(),
+              },
+            });
+            send(controller, { type: "phase", phase: "scraping" });
+            send(controller, { type: "scrape", data: cached.scrapeMeta });
+            const det = cached.detection as Record<string, unknown> | null;
+            if (det) send(controller, { type: "industry_detected", data: det });
+            send(controller, { type: "phase", phase: "generating_queries" });
+            send(controller, { type: "profile", data: cached.profile });
+            send(controller, { type: "queries", data: cached.queries });
+            send(controller, { type: "phase", phase: "running_queries" });
+            const res = cached.results as Array<Record<string, unknown>>;
+            res.forEach((r, i) =>
+              send(controller, { type: "result", index: i, data: r }),
+            );
+            send(controller, { type: "score", data: cached.score });
+            send(controller, { type: "competitors", data: cached.competitors });
+            send(controller, { type: "phase", phase: "analyzing" });
+            // Replay the stored analysis as a single delta for simplicity.
+            if (cached.analysis) {
+              send(controller, {
+                type: "analysis_delta",
+                text: cached.analysis,
+              });
+            }
+            send(controller, { type: "audit_saved", id: cached.id });
+            send(controller, { type: "phase", phase: "done" });
+            controller.close();
+          },
+        });
+        return new Response(replay, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Audit-Cache": `HIT;age=${ageMin}m;id=${cached.id}`,
+          },
+        });
+      }
+    } catch (err) {
+      // DB unreachable — fall through to fresh run, don't block the demo.
+      console.error("[visibility] cache lookup failed:", err);
+    }
+  }
+
+  let client;
+  try {
+    client = getClient();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
+      const runStartedAt = Date.now();
       try {
         send(controller, { type: "phase", phase: "scraping" });
         const scraped = await scrapeUrl(url);
-        send(controller, {
-          type: "scrape",
-          data: {
-            url: scraped.finalUrl,
-            title: scraped.title,
-            wordCount: scraped.wordCount,
-            h1: scraped.h1,
-          },
-        });
+        const scrapeMeta = {
+          url: scraped.finalUrl,
+          title: scraped.title,
+          wordCount: scraped.wordCount,
+          h1: scraped.h1,
+        };
+        send(controller, { type: "scrape", data: scrapeMeta });
 
         const detection = detectIndustryHeuristic(
           [scraped.title, scraped.h1.join(" "), scraped.bodyText].join("\n"),
@@ -87,14 +148,15 @@ export async function POST(req: Request) {
             : industry;
         const source: "user" | "detected" =
           autoIndustry && detection.confidence !== "low" ? "detected" : "user";
+        const detectionPayload = {
+          detected: detection.industry,
+          confidence: detection.confidence,
+          used: effectiveIndustry,
+          source,
+        };
         send(controller, {
           type: "industry_detected",
-          data: {
-            detected: detection.industry,
-            confidence: detection.confidence,
-            used: effectiveIndustry,
-            source,
-          },
+          data: detectionPayload,
         });
 
         send(controller, { type: "phase", phase: "generating_queries" });
@@ -109,21 +171,22 @@ export async function POST(req: Request) {
 
         send(controller, { type: "phase", phase: "running_queries" });
 
+        const resultPayloads: Array<Record<string, unknown>> = new Array(
+          queries.length,
+        ).fill(null);
         const engineTasks = queries.map(async (q, idx) => {
           const result = await runClaudeWebSearch(q.query, profile);
-          send(controller, {
-            type: "result",
-            index: idx,
-            data: {
-              query: q.query,
-              intent: q.intent,
-              engine: result.engine,
-              answerText: result.answerText,
-              citations: result.citations.slice(0, 8),
-              presence: result.presence,
-              error: result.error,
-            },
-          });
+          const payload = {
+            query: q.query,
+            intent: q.intent,
+            engine: result.engine,
+            answerText: result.answerText,
+            citations: result.citations.slice(0, 8),
+            presence: result.presence,
+            error: result.error,
+          };
+          resultPayloads[idx] = payload;
+          send(controller, { type: "result", index: idx, data: payload });
           return result;
         });
         const results = await Promise.all(engineTasks);
@@ -192,6 +255,7 @@ export async function POST(req: Request) {
           `No preamble. No closing summary.`,
         ].join("\n");
 
+        let analysisBuf = "";
         const anthropicStream = client.messages.stream({
           model: CLAUDE_MODEL,
           max_tokens: 1500,
@@ -202,10 +266,36 @@ export async function POST(req: Request) {
             event.type === "content_block_delta" &&
             event.delta.type === "text_delta"
           ) {
+            analysisBuf += event.delta.text;
             send(controller, {
               type: "analysis_delta",
               text: event.delta.text,
             });
+          }
+        }
+
+        // Persist the audit. If DB is missing or fails, don't block the response.
+        if (process.env.DATABASE_URL) {
+          try {
+            const id = await saveAudit({
+              url,
+              industry: effectiveIndustry,
+              city: city || null,
+              autoIndustry: !!autoIndustry,
+              detection: detectionPayload,
+              scrapeMeta,
+              profile,
+              queries,
+              results: resultPayloads,
+              score,
+              competitors,
+              analysis: analysisBuf,
+              durationMs: Date.now() - runStartedAt,
+              clientIp: ip,
+            });
+            send(controller, { type: "audit_saved", id });
+          } catch (err) {
+            console.error("[visibility] saveAudit failed:", err);
           }
         }
 

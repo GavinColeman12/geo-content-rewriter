@@ -267,6 +267,11 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [priorRun, setPriorRun] = useState<HistoryEntry | null>(null);
   const [justCompletedAt, setJustCompletedAt] = useState<number | null>(null);
+  const [auditId, setAuditId] = useState<string | null>(null);
+  const [cacheInfo, setCacheInfo] = useState<{
+    ageMinutes: number;
+    id: string;
+  } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyGroups, setHistoryGroups] = useState<
     Array<{ key: string; url: string; runs: HistoryEntry[] }>
@@ -416,6 +421,13 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       case "analysis_delta":
         setAnalysis((prev) => prev + (evt.text as string));
         break;
+      case "cached":
+        setCacheInfo(evt.data as { ageMinutes: number; id: string });
+        setAuditId((evt.data as { id: string }).id);
+        break;
+      case "audit_saved":
+        setAuditId(evt.id as string);
+        break;
       case "error":
         setError((evt.message as string) || "Unknown error");
         setPhase("error");
@@ -423,7 +435,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     }
   }, []);
 
-  const run = useCallback(async () => {
+  const run = useCallback(async (opts?: { forceFresh?: boolean }) => {
     setPhase("scraping");
     setMeta(null);
     setProfile(null);
@@ -435,12 +447,20 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     setDetection(null);
     setError(null);
     setRestoredAt(null);
+    setCacheInfo(null);
+    setAuditId(null);
 
     try {
       const r = await fetch("/api/visibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, industry, city, autoIndustry }),
+        body: JSON.stringify({
+          url,
+          industry,
+          city,
+          autoIndustry,
+          forceFresh: !!opts?.forceFresh,
+        }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
@@ -651,7 +671,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           </div>
 
           <button
-            onClick={run}
+            onClick={() => run()}
             disabled={isRunning || !valid}
             className="w-full rounded-lg bg-stone-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -702,6 +722,26 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
         </div>
       )}
 
+      {cacheInfo && phase !== "error" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm">
+          <div className="text-sky-900">
+            <span className="font-medium">Served from cache</span> — this audit
+            was run{" "}
+            {cacheInfo.ageMinutes < 60
+              ? `${cacheInfo.ageMinutes}m ago`
+              : `${Math.round(cacheInfo.ageMinutes / 60)}h ago`}
+            . Saved you ~$0.40 in API credits and didn&apos;t count against
+            your rate limit.
+          </div>
+          <button
+            onClick={() => run({ forceFresh: true })}
+            disabled={isRunning}
+            className="shrink-0 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-xs font-medium text-sky-900 transition hover:border-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Re-run fresh
+          </button>
+        </div>
+      )}
       {score && <ScoreCard score={score} profile={profile} priorRun={priorRun} />}
 
       {competitors.length > 0 && (
