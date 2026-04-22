@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { INDUSTRIES, type Industry } from "@/lib/industryPrompts";
 import type { ScrapeMeta } from "@/components/ScrapeMeta";
 import { ScrapeMetaCard } from "@/components/ScrapeMeta";
+
+const STORAGE_KEY = "geo-visibility-last";
 
 type Props = {
   onSendToRewriter?: (payload: {
@@ -95,6 +97,55 @@ function looksLikeUrl(v: string | undefined): boolean {
   return /^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+(\/.*)?$/i.test(trimmed);
 }
 
+type PersistedState = {
+  version: 1;
+  savedAt: number;
+  url: string;
+  industry: Industry;
+  city: string;
+  autoIndustry: boolean;
+  detection: IndustryDetection | null;
+  meta: ScrapeMeta | null;
+  profile: Profile | null;
+  queries: GeneratedQuery[];
+  results: (QueryResult | null)[];
+  score: Score | null;
+  competitors: CompetitorDomain[];
+  analysis: string;
+};
+
+const EXAMPLE_URLS: {
+  url: string;
+  industry: Industry;
+  city: string;
+  label: string;
+}[] = [
+  {
+    url: "https://www.theaustindentist.com",
+    industry: "dental",
+    city: "Austin, TX",
+    label: "Dental practice",
+  },
+  {
+    url: "https://www.morganandmorgan.com",
+    industry: "law_firm",
+    city: "Orlando, FL",
+    label: "Law firm",
+  },
+  {
+    url: "https://skinspirit.com",
+    industry: "medspa",
+    city: "San Francisco, CA",
+    label: "Medspa",
+  },
+  {
+    url: "https://www.arsplumbing.com",
+    industry: "home_services",
+    city: "Nashville, TN",
+    label: "Home services",
+  },
+];
+
 const phaseLabels: Record<Phase, string> = {
   idle: "",
   scraping: "Fetching your page…",
@@ -120,6 +171,91 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [analysis, setAnalysis] = useState("");
   const [autoIndustry, setAutoIndustry] = useState(true);
   const [detection, setDetection] = useState<IndustryDetection | null>(null);
+  const [restoredAt, setRestoredAt] = useState<number | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Restore from URL params or localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const qUrl = params.get("url");
+    const qIndustry = params.get("industry") as Industry | null;
+    const qCity = params.get("city");
+    if (qUrl) {
+      setUrl(qUrl);
+      if (
+        qIndustry &&
+        INDUSTRIES.find((i) => i.value === qIndustry)
+      ) {
+        setIndustry(qIndustry);
+        setAutoIndustry(false);
+      }
+      if (qCity) setCity(qCity);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw) as PersistedState;
+      if (s.version !== 1) return;
+      setUrl(s.url);
+      setIndustry(s.industry);
+      setCity(s.city);
+      setAutoIndustry(s.autoIndustry);
+      setDetection(s.detection);
+      setMeta(s.meta);
+      setProfile(s.profile);
+      setQueries(s.queries);
+      setResults(s.results);
+      setScore(s.score);
+      setCompetitors(s.competitors);
+      setAnalysis(s.analysis);
+      if (s.score) setPhase("done");
+      setRestoredAt(s.savedAt);
+    } catch {
+      // ignore malformed state
+    }
+  }, []);
+
+  // Save to localStorage whenever we hit "done"
+  useEffect(() => {
+    if (phase !== "done" || !score || typeof window === "undefined") return;
+    const toSave: PersistedState = {
+      version: 1,
+      savedAt: Date.now(),
+      url,
+      industry,
+      city,
+      autoIndustry,
+      detection,
+      meta,
+      profile,
+      queries,
+      results,
+      score,
+      competitors,
+      analysis,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch {
+      // quota or privacy mode — fine, fall through
+    }
+  }, [
+    phase,
+    score,
+    url,
+    industry,
+    city,
+    autoIndustry,
+    detection,
+    meta,
+    profile,
+    queries,
+    results,
+    competitors,
+    analysis,
+  ]);
   const [error, setError] = useState<string | null>(null);
 
   const valid = looksLikeUrl(url);
@@ -228,8 +364,38 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
 
   const completedCount = results.filter(Boolean).length;
 
+  const hasResult = phase === "done" && !!score;
+
   return (
     <div className="space-y-6">
+      {restoredAt && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-600">
+          <span>
+            Restored from your last audit — run it again to refresh, or paste a new URL.
+          </span>
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem(STORAGE_KEY);
+              } catch {}
+              setRestoredAt(null);
+              setPhase("idle");
+              setMeta(null);
+              setProfile(null);
+              setQueries([]);
+              setResults([]);
+              setScore(null);
+              setCompetitors([]);
+              setAnalysis("");
+              setDetection(null);
+            }}
+            className="shrink-0 text-stone-700 underline underline-offset-2 hover:text-stone-900"
+          >
+            clear
+          </button>
+        </div>
+      )}
+
       <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="space-y-5">
           <div>
@@ -249,6 +415,27 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
               AI, then run those questions through live AI search to see if you
               show up.
             </p>
+            {!url && !hasResult && !isRunning && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="text-[11px] text-stone-500">
+                  Try one:
+                </span>
+                {EXAMPLE_URLS.map((ex) => (
+                  <button
+                    key={ex.url}
+                    type="button"
+                    onClick={() => {
+                      setUrl(ex.url);
+                      setCity(ex.city);
+                      setIndustry(ex.industry);
+                    }}
+                    className="rounded-full border border-stone-200 bg-white px-2.5 py-0.5 text-[11px] text-stone-700 transition hover:border-stone-400 hover:bg-stone-50"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -454,6 +641,14 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
             });
             navigator.clipboard.writeText(md);
           }}
+          onCopyShareLink={() => {
+            const p = new URLSearchParams({ url, industry, city });
+            const link = `${window.location.origin}${window.location.pathname}?${p}`;
+            navigator.clipboard.writeText(link);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+          }}
+          linkCopied={linkCopied}
           missedCount={
             results.filter(
               (r) => r && r.presence.verdict !== "hit" && !r.error,
@@ -469,11 +664,15 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
 function NextStepsBar({
   onFixGaps,
   onCopyReport,
+  onCopyShareLink,
+  linkCopied,
   missedCount,
   rewriterEnabled,
 }: {
   onFixGaps: () => void;
   onCopyReport: () => void;
+  onCopyShareLink: () => void;
+  linkCopied: boolean;
   missedCount: number;
   rewriterEnabled: boolean;
 }) {
@@ -486,7 +685,7 @@ function NextStepsBar({
       <h2 className="mb-4 text-lg font-semibold tracking-tight text-stone-900">
         Turn this audit into changes
       </h2>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <button
           onClick={onFixGaps}
           disabled={!rewriterEnabled || missedCount === 0}
@@ -509,11 +708,21 @@ function NextStepsBar({
           className="rounded-xl border border-stone-300 bg-white px-5 py-4 text-left text-sm font-medium text-stone-900 transition hover:border-stone-400"
         >
           <div className="text-sm">
-            {copied ? "Copied to clipboard ✓" : "Copy full report as markdown"}
+            {copied ? "Report copied ✓" : "Copy full report"}
           </div>
           <div className="mt-1 text-xs font-normal text-stone-500">
-            Score, competitors, missed queries, and analysis — ready to paste into
-            email or Notion.
+            Markdown with score, competitors, queries, and analysis.
+          </div>
+        </button>
+        <button
+          onClick={onCopyShareLink}
+          className="rounded-xl border border-stone-300 bg-white px-5 py-4 text-left text-sm font-medium text-stone-900 transition hover:border-stone-400"
+        >
+          <div className="text-sm">
+            {linkCopied ? "Link copied ✓" : "Copy share link"}
+          </div>
+          <div className="mt-1 text-xs font-normal text-stone-500">
+            Prefilled URL — recipient can re-run the audit in one click.
           </div>
         </button>
       </div>
