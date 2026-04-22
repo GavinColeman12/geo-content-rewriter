@@ -22,6 +22,15 @@ type QueryResult = {
   error?: string;
 };
 
+type IntentBreakdown = {
+  intent: "research" | "comparison" | "booking";
+  total: number;
+  hits: number;
+  partials: number;
+  misses: number;
+  score: number;
+};
+
 type Score = {
   overall: number;
   hitCount: number;
@@ -31,6 +40,7 @@ type Score = {
   total: number;
   band: "strong" | "moderate" | "weak" | "invisible";
   bandLabel: string;
+  byIntent: IntentBreakdown[];
 };
 
 type Profile = {
@@ -431,7 +441,68 @@ function ScoreCard({
           </div>
         </div>
       </div>
+
+      {score.byIntent.length > 0 && (
+        <div className="mt-6 border-t border-stone-200 pt-5">
+          <div className="mb-3 text-xs font-medium uppercase tracking-wide text-stone-500">
+            By search intent
+          </div>
+          <div className="space-y-3">
+            {score.byIntent.map((b) => (
+              <IntentBar key={b.intent} breakdown={b} />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function IntentBar({ breakdown: b }: { breakdown: IntentBreakdown }) {
+  const intentLabel =
+    b.intent === "research"
+      ? "Research queries"
+      : b.intent === "comparison"
+        ? "Comparison queries"
+        : "Booking-ready queries";
+  const intentSub =
+    b.intent === "research"
+      ? "people learning about the service"
+      : b.intent === "comparison"
+        ? "evaluating their options"
+        : "ready to book or buy";
+
+  const barColor =
+    b.score >= 70
+      ? "bg-emerald-500"
+      : b.score >= 40
+        ? "bg-amber-500"
+        : b.score >= 15
+          ? "bg-orange-500"
+          : "bg-red-500";
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-sm">
+        <div>
+          <span className="font-medium text-stone-900">{intentLabel}</span>{" "}
+          <span className="text-xs text-stone-500">{intentSub}</span>
+        </div>
+        <div className="text-sm tabular-nums text-stone-900">
+          <span className="font-medium">{b.hits}</span>
+          <span className="text-stone-400">/{b.total}</span>
+          <span className="ml-2 text-xs text-stone-500">
+            {b.score}%
+          </span>
+        </div>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+        <div
+          className={`h-full transition-all ${barColor}`}
+          style={{ width: `${Math.max(3, b.score)}%` }}
+        />
+      </div>
+    </div>
   );
 }
 

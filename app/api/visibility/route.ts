@@ -103,7 +103,7 @@ export async function POST(req: Request) {
         });
         const results = await Promise.all(engineTasks);
 
-        const score = scoreResults(results);
+        const score = scoreResults(results, queries);
         send(controller, { type: "score", data: score });
 
         send(controller, { type: "phase", phase: "analyzing" });

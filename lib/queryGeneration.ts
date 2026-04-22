@@ -24,25 +24,67 @@ function extractDomain(url: string): string {
   }
 }
 
-function extractBusinessName(scraped: ScrapeResult): string {
-  const titleClean = (scraped.title || "")
+function extractBusinessNameHeuristic(scraped: ScrapeResult): string {
+  const domain = extractDomain(scraped.finalUrl);
+  const slug = domain.split(".")[0].replace(/-/g, " ");
+  const titleParts = (scraped.title || "")
     .split(/[|\-—–·»]/)
     .map((s) => s.trim())
     .filter(Boolean);
-  if (titleClean.length > 0) {
-    const first = titleClean[0];
-    const last = titleClean[titleClean.length - 1];
-    const candidates = [first, last];
-    for (const c of candidates) {
-      if (c.length > 2 && c.length < 60 && !/^home$/i.test(c)) {
-        return c;
+  // Prefer the title segment whose slugified form matches the domain slug.
+  if (titleParts.length > 1) {
+    for (const p of titleParts) {
+      const normalizedP = p.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const normalizedSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      if (
+        normalizedP &&
+        normalizedSlug &&
+        (normalizedP.includes(normalizedSlug) ||
+          normalizedSlug.includes(normalizedP))
+      ) {
+        return p;
       }
     }
   }
+  if (titleParts[0] && titleParts[0].length > 2 && titleParts[0].length < 60) {
+    return titleParts[0];
+  }
   if (scraped.h1.length > 0) return scraped.h1[0].slice(0, 60);
-  const domain = extractDomain(scraped.finalUrl);
-  const name = domain.split(".")[0];
-  return name.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return slug.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function extractBusinessNameWithLLM(
+  scraped: ScrapeResult,
+  domain: string,
+): Promise<string | null> {
+  const client = getClient();
+  const prompt = [
+    "Identify the business name of the entity that owns this website. Return ONLY the name, nothing else. No quotes, no preamble.",
+    "",
+    `Domain: ${domain}`,
+    `<title>: ${scraped.title}`,
+    scraped.h1.length ? `<h1>: ${scraped.h1.join(" | ")}` : "",
+    `First 400 chars of body text:\n${scraped.bodyText.slice(0, 400)}`,
+    "",
+    'If you cannot identify it, respond with exactly: UNKNOWN',
+  ].filter(Boolean).join("\n");
+
+  try {
+    const response = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 60,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = response.content
+      .map((b) => (b.type === "text" ? b.text : ""))
+      .join("")
+      .trim()
+      .replace(/^["']|["']$/g, "");
+    if (!text || text === "UNKNOWN" || text.length > 80) return null;
+    return text;
+  } catch {
+    return null;
+  }
 }
 
 const GENERATE_SYSTEM = `You generate the queries real customers would ask AI search engines (ChatGPT, Perplexity, Claude, Google AI Overviews) when looking for a local business.
@@ -60,9 +102,13 @@ export async function generateQueries(
   city: string,
   count: number = 6,
 ): Promise<{ profile: BusinessProfile; queries: GeneratedQuery[] }> {
+  const domain = extractDomain(scraped.finalUrl);
+  const heuristicName = extractBusinessNameHeuristic(scraped);
+  const llmName = await extractBusinessNameWithLLM(scraped, domain);
+  const name = llmName || heuristicName;
   const profile: BusinessProfile = {
-    name: extractBusinessName(scraped),
-    domain: extractDomain(scraped.finalUrl),
+    name,
+    domain,
     city: city || "",
     services: scraped.headings.slice(0, 10),
   };
