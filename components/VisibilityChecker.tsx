@@ -272,6 +272,13 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     ageMinutes: number;
     id: string;
   } | null>(null);
+  const [benchmark, setBenchmark] = useState<{
+    count: number;
+    medianOverall: number | null;
+    avgOverall: number | null;
+    p75: number | null;
+    p25: number | null;
+  } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyGroups, setHistoryGroups] = useState<
     Array<{ key: string; url: string; runs: HistoryEntry[] }>
@@ -323,6 +330,28 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       // ignore malformed state
     }
   }, []);
+
+  // Fetch industry benchmark once we have a detection + score.
+  useEffect(() => {
+    if (!score || !detection) {
+      setBenchmark(null);
+      return;
+    }
+    const ind = detection.used;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/benchmarks/${ind}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (cancelled) return;
+        setBenchmark(data);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [score, detection]);
 
   // Save to localStorage only when a run just completed (not when restored).
   useEffect(() => {
@@ -742,7 +771,15 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           </button>
         </div>
       )}
-      {score && <ScoreCard score={score} profile={profile} priorRun={priorRun} />}
+      {score && (
+        <ScoreCard
+          score={score}
+          profile={profile}
+          priorRun={priorRun}
+          benchmark={benchmark}
+          industry={detection?.used ?? industry}
+        />
+      )}
 
       {competitors.length > 0 && (
         <CompetitorPanel
@@ -1130,10 +1167,20 @@ function ScoreCard({
   score,
   profile,
   priorRun,
+  benchmark,
+  industry,
 }: {
   score: Score;
   profile: Profile | null;
   priorRun: HistoryEntry | null;
+  benchmark: {
+    count: number;
+    medianOverall: number | null;
+    avgOverall: number | null;
+    p75: number | null;
+    p25: number | null;
+  } | null;
+  industry: Industry;
 }) {
   const delta =
     priorRun && priorRun.overall !== score.overall
@@ -1244,6 +1291,13 @@ function ScoreCard({
               </span>
             )}
           </div>
+          {benchmark && benchmark.count >= 3 && benchmark.medianOverall !== null && (
+            <BenchmarkLine
+              yours={score.overall}
+              benchmark={benchmark}
+              industry={industry}
+            />
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-stone-500">
             <span>
               Tested against live AI search via Claude&apos;s web-search tool.
@@ -1358,6 +1412,103 @@ function CompetitorPanel({
         })}
       </div>
     </section>
+  );
+}
+
+function BenchmarkLine({
+  yours,
+  benchmark,
+  industry,
+}: {
+  yours: number;
+  benchmark: {
+    count: number;
+    medianOverall: number | null;
+    p75: number | null;
+    p25: number | null;
+  };
+  industry: Industry;
+}) {
+  const median = benchmark.medianOverall ?? 0;
+  const p75 = benchmark.p75 ?? median;
+  const p25 = benchmark.p25 ?? median;
+  const industryLabel =
+    INDUSTRIES.find((i) => i.value === industry)?.label ?? industry;
+
+  let verdict: { text: string; colorClass: string };
+  if (yours >= p75) {
+    verdict = {
+      text: `top 25% of ${industryLabel} audits`,
+      colorClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    };
+  } else if (yours >= median) {
+    verdict = {
+      text: `above the median for ${industryLabel}`,
+      colorClass: "bg-sky-50 text-sky-700 ring-sky-200",
+    };
+  } else if (yours >= p25) {
+    verdict = {
+      text: `below the median for ${industryLabel}`,
+      colorClass: "bg-amber-50 text-amber-700 ring-amber-200",
+    };
+  } else {
+    verdict = {
+      text: `bottom 25% of ${industryLabel} audits`,
+      colorClass: "bg-red-50 text-red-700 ring-red-200",
+    };
+  }
+
+  // Bar showing p25, median, p75 range + your marker
+  const barMin = Math.min(0, Math.floor(p25 / 10) * 10);
+  const barMax = 100;
+  const norm = (v: number) =>
+    ((Math.max(barMin, Math.min(barMax, v)) - barMin) /
+      Math.max(1, barMax - barMin)) *
+    100;
+  const p25X = norm(p25);
+  const p75X = norm(p75);
+  const medianX = norm(median);
+  const yoursX = norm(yours);
+  const isMin = benchmark.count < 10;
+
+  return (
+    <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+        <span
+          className={`rounded-full px-2 py-0.5 font-medium ring-1 ring-inset ${verdict.colorClass}`}
+        >
+          {verdict.text}
+        </span>
+        <span className="text-stone-500">
+          n={benchmark.count}
+          {isMin && " · small sample"}
+        </span>
+      </div>
+      <div className="relative h-6">
+        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-stone-200" />
+        <div
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-stone-400"
+          style={{ left: `${p25X}%`, width: `${p75X - p25X}%` }}
+        />
+        <div
+          className="absolute top-0 h-full w-px bg-stone-600"
+          style={{ left: `${medianX}%` }}
+          title={`Median: ${Math.round(median)}`}
+        />
+        <div
+          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-stone-900 ring-2 ring-white"
+          style={{ left: `${yoursX}%` }}
+          title={`You: ${yours}`}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-stone-500 tabular-nums">
+        <span>{barMin}</span>
+        <span className="font-medium text-stone-700">
+          median {Math.round(median)}
+        </span>
+        <span>100</span>
+      </div>
+    </div>
   );
 }
 
