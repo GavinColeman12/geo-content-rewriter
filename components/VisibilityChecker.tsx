@@ -6,6 +6,8 @@ import type { ScrapeMeta } from "@/components/ScrapeMeta";
 import { ScrapeMetaCard } from "@/components/ScrapeMeta";
 
 const STORAGE_KEY = "geo-visibility-last";
+const HISTORY_KEY = "geo-visibility-history-v1";
+const MAX_HISTORY_PER_URL = 5;
 
 type Props = {
   onSendToRewriter?: (payload: {
@@ -97,6 +99,63 @@ function looksLikeUrl(v: string | undefined): boolean {
   return /^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+(\/.*)?$/i.test(trimmed);
 }
 
+type HistoryEntry = {
+  url: string;
+  savedAt: number;
+  overall: number;
+  hitCount: number;
+  total: number;
+  band: Score["band"];
+};
+
+function normalizeUrlKey(u: string): string {
+  try {
+    const x = new URL(u);
+    return (x.hostname + x.pathname).replace(/\/$/, "").toLowerCase();
+  } catch {
+    return u.trim().toLowerCase();
+  }
+}
+
+function readHistory(): HistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr as HistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function writeHistoryEntry(entry: HistoryEntry) {
+  if (typeof window === "undefined") return;
+  const existing = readHistory();
+  const key = normalizeUrlKey(entry.url);
+  const filtered = existing.filter(
+    (e) => normalizeUrlKey(e.url) === key,
+  );
+  const others = existing.filter(
+    (e) => normalizeUrlKey(e.url) !== key,
+  );
+  const next = [entry, ...filtered].slice(0, MAX_HISTORY_PER_URL);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([...next, ...others]));
+  } catch {}
+}
+
+function priorRunFor(url: string, beforeTs: number): HistoryEntry | null {
+  const key = normalizeUrlKey(url);
+  const hits = readHistory()
+    .filter(
+      (e) => normalizeUrlKey(e.url) === key && e.savedAt < beforeTs,
+    )
+    .sort((a, b) => b.savedAt - a.savedAt);
+  return hits[0] ?? null;
+}
+
 type PersistedState = {
   version: 1;
   savedAt: number;
@@ -173,6 +232,8 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [detection, setDetection] = useState<IndustryDetection | null>(null);
   const [restoredAt, setRestoredAt] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [priorRun, setPriorRun] = useState<HistoryEntry | null>(null);
+  const [justCompletedAt, setJustCompletedAt] = useState<number | null>(null);
 
   // Restore from URL params or localStorage on mount
   useEffect(() => {
@@ -217,12 +278,14 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     }
   }, []);
 
-  // Save to localStorage whenever we hit "done"
+  // Save to localStorage only when a run just completed (not when restored).
   useEffect(() => {
-    if (phase !== "done" || !score || typeof window === "undefined") return;
+    if (!justCompletedAt || phase !== "done" || !score || typeof window === "undefined") return;
+    const prior = priorRunFor(url, justCompletedAt);
+    setPriorRun(prior);
     const toSave: PersistedState = {
       version: 1,
-      savedAt: Date.now(),
+      savedAt: justCompletedAt,
       url,
       industry,
       city,
@@ -238,10 +301,17 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-    } catch {
-      // quota or privacy mode — fine, fall through
-    }
+    } catch {}
+    writeHistoryEntry({
+      url,
+      savedAt: justCompletedAt,
+      overall: score.overall,
+      hitCount: score.hitCount,
+      total: score.total,
+      band: score.band,
+    });
   }, [
+    justCompletedAt,
     phase,
     score,
     url,
@@ -322,6 +392,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
     setAnalysis("");
     setDetection(null);
     setError(null);
+    setRestoredAt(null);
 
     try {
       const r = await fetch("/api/visibility", {
@@ -355,12 +426,13 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           }
         }
       }
+      setJustCompletedAt(Date.now());
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
       setPhase("error");
     }
-  }, [url, industry, city, handleEvent]);
+  }, [url, industry, city, autoIndustry, handleEvent]);
 
   const completedCount = results.filter(Boolean).length;
 
@@ -568,7 +640,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
         </div>
       )}
 
-      {score && <ScoreCard score={score} profile={profile} />}
+      {score && <ScoreCard score={score} profile={profile} priorRun={priorRun} />}
 
       {competitors.length > 0 && (
         <CompetitorPanel
@@ -810,10 +882,19 @@ function buildReportMarkdown({
 function ScoreCard({
   score,
   profile,
+  priorRun,
 }: {
   score: Score;
   profile: Profile | null;
+  priorRun: HistoryEntry | null;
 }) {
+  const delta =
+    priorRun && priorRun.overall !== score.overall
+      ? score.overall - priorRun.overall
+      : null;
+  const deltaDaysAgo = priorRun
+    ? Math.max(1, Math.round((Date.now() - priorRun.savedAt) / 86400000))
+    : null;
   const bandColor =
     score.band === "strong"
       ? "text-emerald-600"
@@ -899,7 +980,28 @@ function ScoreCard({
                 {score.errorCount} errors
               </span>
             )}
+            {delta !== null && (
+              <span
+                className={`rounded-full px-2.5 py-1 font-medium ${
+                  delta > 0
+                    ? "bg-emerald-600 text-white"
+                    : "bg-red-600 text-white"
+                }`}
+                title={
+                  deltaDaysAgo
+                    ? `Previous audit ${deltaDaysAgo} day${deltaDaysAgo === 1 ? "" : "s"} ago: ${priorRun?.overall}`
+                    : undefined
+                }
+              >
+                {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} vs. last run
+              </span>
+            )}
           </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-stone-500">
+            Tested against live AI search via Claude&apos;s web-search tool.
+            Results reflect what ChatGPT, Perplexity, and Google AI Overviews
+            surface for the same queries — they share the same live web index.
+          </p>
         </div>
       </div>
 
