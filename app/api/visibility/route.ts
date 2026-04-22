@@ -6,6 +6,7 @@ import { scrapeUrl } from "@/lib/scraper";
 import { generateQueries } from "@/lib/queryGeneration";
 import { runClaudeWebSearch } from "@/lib/visibilityEngine";
 import { scoreResults } from "@/lib/visibilityScoring";
+import { extractCompetitors } from "@/lib/competitorAnalysis";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -106,10 +107,13 @@ export async function POST(req: Request) {
         const score = scoreResults(results, queries);
         send(controller, { type: "score", data: score });
 
+        const competitors = extractCompetitors(results, profile.domain);
+        send(controller, { type: "competitors", data: competitors });
+
         send(controller, { type: "phase", phase: "analyzing" });
 
         const summaryInput = results.map((r, i) => ({
-          idx: i,
+          queryNumber: i + 1,
           query: r.query,
           verdict: r.presence.verdict,
           citedDomains: Array.from(
@@ -127,6 +131,11 @@ export async function POST(req: Request) {
           ).slice(0, 5),
           answerExcerpt: r.answerText.slice(0, 250),
         }));
+        const competitorSummary = competitors.slice(0, 5).map((c) => ({
+          domain: c.domain,
+          citationsInYourAudit: c.citations,
+          queriesTheyWon: c.queriesWonIndices.map((i) => i + 1),
+        }));
 
         const analysisPrompt = [
           `Business: ${profile.name}`,
@@ -139,7 +148,10 @@ export async function POST(req: Request) {
           `Per-query results:`,
           JSON.stringify(summaryInput, null, 2),
           ``,
-          `Write a GEO visibility analysis in this exact structure, using plain markdown:`,
+          `Top competitor domains cited in this audit (excluding you):`,
+          JSON.stringify(competitorSummary, null, 2),
+          ``,
+          `Write a GEO visibility analysis in this exact structure, using plain markdown. When you reference a specific query, always use its queryNumber (1-indexed) — e.g. "Query 3", not "Query 2".`,
           ``,
           `## Headline`,
           `One sentence — the punchline of this audit.`,
@@ -148,7 +160,7 @@ export async function POST(req: Request) {
           `2-3 bullets tied to specific queries that hit. If zero hits, write "Nothing surfaced — this business is invisible to AI search right now."`,
           ``,
           `## Who's winning instead`,
-          `2-3 bullets naming the competitor domains that ARE being cited for the missed queries (from the citedDomains above). Call out the pattern.`,
+          `2-3 bullets naming the competitor domains being cited for the missed queries. Call out the pattern — are directory sites winning? A specific competitor? National chains?`,
           ``,
           `## The three highest-ROI fixes`,
           `Three specific, numbered fixes — tied to the missed queries and the competitor patterns. Not generic advice.`,

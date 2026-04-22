@@ -55,6 +55,12 @@ type GeneratedQuery = {
   intent: "research" | "comparison" | "booking";
 };
 
+type CompetitorDomain = {
+  domain: string;
+  citations: number;
+  queriesWonIndices: number[];
+};
+
 type Phase =
   | "idle"
   | "scraping"
@@ -94,6 +100,7 @@ export function VisibilityChecker() {
   const [queries, setQueries] = useState<GeneratedQuery[]>([]);
   const [results, setResults] = useState<(QueryResult | null)[]>([]);
   const [score, setScore] = useState<Score | null>(null);
+  const [competitors, setCompetitors] = useState<CompetitorDomain[]>([]);
   const [analysis, setAnalysis] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +141,9 @@ export function VisibilityChecker() {
       case "score":
         setScore(evt.data as Score);
         break;
+      case "competitors":
+        setCompetitors(evt.data as CompetitorDomain[]);
+        break;
       case "analysis_delta":
         setAnalysis((prev) => prev + (evt.text as string));
         break;
@@ -151,6 +161,7 @@ export function VisibilityChecker() {
     setQueries([]);
     setResults([]);
     setScore(null);
+    setCompetitors([]);
     setAnalysis("");
     setError(null);
 
@@ -304,6 +315,14 @@ export function VisibilityChecker() {
 
       {score && <ScoreCard score={score} profile={profile} />}
 
+      {competitors.length > 0 && (
+        <CompetitorPanel
+          competitors={competitors}
+          queries={queries}
+          totalQueries={queries.length}
+        />
+      )}
+
       {queries.length > 0 && (
         <section>
           <h2 className="mb-3 text-xl font-semibold tracking-tight text-stone-900">
@@ -454,6 +473,78 @@ function ScoreCard({
           </div>
         </div>
       )}
+    </section>
+  );
+}
+
+function CompetitorPanel({
+  competitors,
+  queries,
+  totalQueries,
+}: {
+  competitors: CompetitorDomain[];
+  queries: GeneratedQuery[];
+  totalQueries: number;
+}) {
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-1 flex items-center justify-between">
+        <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+          Who&apos;s winning instead
+        </h2>
+        <span className="text-xs text-stone-500">
+          top cited domains, excluding social &amp; directories
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-stone-600">
+        These are the other sites AI search cited for your queries. If your
+        competitors are here and you&apos;re not, this is where to focus.
+      </p>
+      <div className="divide-y divide-stone-100">
+        {competitors.map((c) => {
+          const shareOfVoice = Math.round(
+            (c.citations / Math.max(1, totalQueries)) * 100,
+          );
+          return (
+            <div key={c.domain} className="py-3 first:pt-0 last:pb-0">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <a
+                  href={`https://${c.domain}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate text-sm font-medium text-stone-900 hover:underline"
+                >
+                  {c.domain}
+                </a>
+                <div className="shrink-0 text-xs text-stone-500 tabular-nums">
+                  cited on{" "}
+                  <span className="font-medium text-stone-900">
+                    {c.citations}
+                  </span>{" "}
+                  / {totalQueries} queries
+                </div>
+              </div>
+              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-stone-100">
+                <div
+                  className="h-full bg-stone-400"
+                  style={{ width: `${Math.max(5, shareOfVoice)}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {c.queriesWonIndices.map((i) => (
+                  <span
+                    key={i}
+                    title={queries[i]?.query ?? ""}
+                    className="inline-flex items-center rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600"
+                  >
+                    Q{i + 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
