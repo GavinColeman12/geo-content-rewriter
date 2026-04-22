@@ -3,11 +3,20 @@
 import { useState } from "react";
 import { VisibilityChecker } from "@/components/VisibilityChecker";
 import { ContentRewriter } from "@/components/ContentRewriter";
+import type { Industry } from "@/lib/industryPrompts";
 
 type Tab = "visibility" | "rewriter";
 
+type Handoff = {
+  url: string;
+  industry: Industry;
+  city: string;
+  missedQueries: string[];
+} | null;
+
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("visibility");
+  const [handoff, setHandoff] = useState<Handoff>(null);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-10 sm:py-16">
@@ -65,7 +74,17 @@ export default function HomePage() {
         </button>
       </nav>
 
-      {tab === "visibility" ? <VisibilityChecker /> : <ContentRewriter />}
+      {tab === "visibility" ? (
+        <VisibilityChecker
+          onSendToRewriter={(payload) => {
+            setHandoff(payload);
+            setTab("rewriter");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      ) : (
+        <ContentRewriter handoff={handoff} onClearHandoff={() => setHandoff(null)} />
+      )}
 
       <footer className="mt-20 border-t border-stone-200 pt-8 text-sm text-stone-600">
         <p className="max-w-2xl">

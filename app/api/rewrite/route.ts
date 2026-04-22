@@ -12,6 +12,7 @@ type Body = {
   url: string;
   industry: Industry;
   city: string;
+  targetQueries?: string[];
 };
 
 export async function POST(req: Request) {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { url, industry, city } = body;
+  const { url, industry, city, targetQueries } = body;
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "Please provide a URL." }, { status: 400 });
   }
@@ -55,14 +56,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 422 });
   }
 
+  const targetQueriesBlock =
+    targetQueries && targetQueries.length > 0
+      ? [
+          `**Priority target queries** — this rewrite MUST make the page surface for these specific AI-search queries the business is currently missing:`,
+          ...targetQueries.slice(0, 10).map((q, i) => `${i + 1}. ${q}`),
+          ``,
+          `Weight the rewrite and FAQ generation heavily toward directly answering these queries. The rewrite should read as if these queries were the exact questions a customer asked the page.`,
+        ].join("\n")
+      : "";
+
   const userMessage = [
     `Industry context:\n${industryContext(industry)}`,
     `Service area / city: ${city || "(not specified)"}`,
+    targetQueriesBlock,
     `Scraped page:`,
     formatScrapedForPrompt(scraped),
     ``,
     REWRITE_USER_INSTRUCTIONS,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

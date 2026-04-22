@@ -5,6 +5,15 @@ import { INDUSTRIES, type Industry } from "@/lib/industryPrompts";
 import type { ScrapeMeta } from "@/components/ScrapeMeta";
 import { ScrapeMetaCard } from "@/components/ScrapeMeta";
 
+type Props = {
+  onSendToRewriter?: (payload: {
+    url: string;
+    industry: Industry;
+    city: string;
+    missedQueries: string[];
+  }) => void;
+};
+
 type Presence = {
   inCitations: boolean;
   inAnswerText: boolean;
@@ -89,7 +98,7 @@ const phaseLabels: Record<Phase, string> = {
   error: "",
 };
 
-export function VisibilityChecker() {
+export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [url, setUrl] = useState("");
   const [industry, setIndustry] = useState<Industry>("dental");
   const [city, setCity] = useState("");
@@ -361,8 +370,173 @@ export function VisibilityChecker() {
           <AnalysisMarkdown text={analysis} />
         </section>
       )}
+
+      {phase === "done" && score && (
+        <NextStepsBar
+          onFixGaps={() => {
+            if (!onSendToRewriter) return;
+            const missed = results
+              .filter(
+                (r): r is QueryResult =>
+                  !!r && r.presence.verdict !== "hit" && !r.error,
+              )
+              .map((r) => r.query);
+            onSendToRewriter({ url, industry, city, missedQueries: missed });
+          }}
+          onCopyReport={() => {
+            const md = buildReportMarkdown({
+              url,
+              profile,
+              score,
+              competitors,
+              queries,
+              results,
+              analysis,
+            });
+            navigator.clipboard.writeText(md);
+          }}
+          missedCount={
+            results.filter(
+              (r) => r && r.presence.verdict !== "hit" && !r.error,
+            ).length
+          }
+          rewriterEnabled={!!onSendToRewriter}
+        />
+      )}
     </div>
   );
+}
+
+function NextStepsBar({
+  onFixGaps,
+  onCopyReport,
+  missedCount,
+  rewriterEnabled,
+}: {
+  onFixGaps: () => void;
+  onCopyReport: () => void;
+  missedCount: number;
+  rewriterEnabled: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-stone-50 p-6">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">
+        Next steps
+      </div>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-stone-900">
+        Turn this audit into changes
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          onClick={onFixGaps}
+          disabled={!rewriterEnabled || missedCount === 0}
+          className="rounded-xl border border-stone-900 bg-stone-900 px-5 py-4 text-left text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <div className="text-sm">
+            Fix the {missedCount} missed {missedCount === 1 ? "query" : "queries"}{" "}
+            →
+          </div>
+          <div className="mt-1 text-xs font-normal text-stone-300">
+            Jump to the Content Rewriter with these queries loaded as the target.
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            onCopyReport();
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className="rounded-xl border border-stone-300 bg-white px-5 py-4 text-left text-sm font-medium text-stone-900 transition hover:border-stone-400"
+        >
+          <div className="text-sm">
+            {copied ? "Copied to clipboard ✓" : "Copy full report as markdown"}
+          </div>
+          <div className="mt-1 text-xs font-normal text-stone-500">
+            Score, competitors, missed queries, and analysis — ready to paste into
+            email or Notion.
+          </div>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function buildReportMarkdown({
+  url,
+  profile,
+  score,
+  competitors,
+  queries,
+  results,
+  analysis,
+}: {
+  url: string;
+  profile: { name: string; domain: string; city: string; services: string[] } | null;
+  score: Score;
+  competitors: CompetitorDomain[];
+  queries: GeneratedQuery[];
+  results: (QueryResult | null)[];
+  analysis: string;
+}): string {
+  const lines: string[] = [];
+  lines.push(`# GEO Visibility Audit — ${profile?.name ?? url}`);
+  lines.push("");
+  lines.push(`- URL: ${url}`);
+  if (profile?.domain) lines.push(`- Domain: ${profile.domain}`);
+  if (profile?.city) lines.push(`- Location: ${profile.city}`);
+  lines.push(
+    `- Generated: ${new Date().toISOString().slice(0, 10)} via crescendo-consulting.net`,
+  );
+  lines.push("");
+  lines.push(`## Score: ${score.overall} / 100 — ${score.bandLabel}`);
+  lines.push(
+    `${score.hitCount} cited · ${score.partialCount} mentioned · ${score.missCount} missed${score.errorCount ? ` · ${score.errorCount} errors` : ""}`,
+  );
+  lines.push("");
+  if (score.byIntent.length > 0) {
+    lines.push("### By search intent");
+    for (const b of score.byIntent) {
+      const label =
+        b.intent === "research"
+          ? "Research"
+          : b.intent === "comparison"
+            ? "Comparison"
+            : "Booking";
+      lines.push(`- ${label}: ${b.hits}/${b.total} (${b.score}%)`);
+    }
+    lines.push("");
+  }
+  if (competitors.length > 0) {
+    lines.push("## Who's winning instead");
+    for (const c of competitors) {
+      const qs = c.queriesWonIndices.map((i) => `Q${i + 1}`).join(", ");
+      lines.push(`- **${c.domain}** — cited on ${c.citations}/${queries.length} queries (${qs})`);
+    }
+    lines.push("");
+  }
+  lines.push("## Queries tested");
+  queries.forEach((q, i) => {
+    const r = results[i];
+    const verdict = r?.error
+      ? "error"
+      : r?.presence.verdict === "hit"
+        ? "✓ cited"
+        : r?.presence.verdict === "partial"
+          ? "~ mentioned"
+          : "✗ missed";
+    lines.push(`${i + 1}. [${verdict}] (${q.intent}) ${q.query}`);
+  });
+  lines.push("");
+  if (analysis.trim()) {
+    lines.push("## Analysis");
+    lines.push(analysis.trim());
+    lines.push("");
+  }
+  lines.push(
+    "_Generated by Crescendo Consulting's GEO Visibility Checker._",
+  );
+  return lines.join("\n");
 }
 
 function ScoreCard({

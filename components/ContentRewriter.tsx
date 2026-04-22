@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CopyInput } from "@/components/CopyInput";
 import { ResearchPanel } from "@/components/ResearchPanel";
 import { BeforeAfterCompare } from "@/components/BeforeAfterCompare";
@@ -10,6 +10,18 @@ import { ChangeExplanation } from "@/components/ChangeExplanation";
 import { ScrapeMetaCard, type ScrapeMeta } from "@/components/ScrapeMeta";
 import { parseRewriteOutput } from "@/lib/parseRewrite";
 import type { Industry } from "@/lib/industryPrompts";
+
+type Handoff = {
+  url: string;
+  industry: Industry;
+  city: string;
+  missedQueries: string[];
+} | null;
+
+type Props = {
+  handoff?: Handoff;
+  onClearHandoff?: () => void;
+};
 
 type Phase = "idle" | "scraping" | "analyzing" | "rewriting" | "done" | "error";
 
@@ -53,11 +65,19 @@ async function streamBody(
   if (buf) onChunk(buf);
 }
 
-export function ContentRewriter() {
+export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
   const [url, setUrl] = useState("");
   const [industry, setIndustry] = useState<Industry>("dental");
   const [city, setCity] = useState("");
   const [showResearch, setShowResearch] = useState(false);
+
+  useEffect(() => {
+    if (handoff) {
+      setUrl(handoff.url);
+      setIndustry(handoff.industry);
+      setCity(handoff.city);
+    }
+  }, [handoff]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [meta, setMeta] = useState<ScrapeMeta | null>(null);
@@ -97,7 +117,12 @@ export function ContentRewriter() {
       const r2 = await fetch("/api/rewrite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, industry, city }),
+        body: JSON.stringify({
+          url,
+          industry,
+          city,
+          targetQueries: handoff?.missedQueries ?? [],
+        }),
       });
       if (!r2.ok) {
         const j = await r2.json().catch(() => ({ error: `HTTP ${r2.status}` }));
@@ -131,6 +156,39 @@ export function ContentRewriter() {
 
   return (
     <div className="space-y-6">
+      {handoff && handoff.missedQueries.length > 0 && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-emerald-800">
+              From your visibility audit
+            </div>
+            <button
+              onClick={() => onClearHandoff?.()}
+              className="text-xs text-emerald-700 hover:underline"
+              aria-label="Dismiss handoff"
+            >
+              clear
+            </button>
+          </div>
+          <div className="mb-2 text-sm text-stone-800">
+            Rewrite this page so it can surface for the{" "}
+            <span className="font-medium">
+              {handoff.missedQueries.length}{" "}
+              {handoff.missedQueries.length === 1 ? "query" : "queries"}
+            </span>{" "}
+            AI search missed:
+          </div>
+          <ul className="space-y-1 text-sm text-stone-700">
+            {handoff.missedQueries.slice(0, 6).map((q, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 text-emerald-600">→</span>
+                <span>{q}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
         <CopyInput
           url={url}
