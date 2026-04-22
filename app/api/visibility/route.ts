@@ -139,33 +139,52 @@ export async function POST(req: Request) {
         };
         send(controller, { type: "scrape", data: scrapeMeta });
 
-        const detection = detectIndustryHeuristic(
+        // Fast heuristic detection is kept as a fallback for when the LLM
+        // call inside generateQueries can't give us anything, but the LLM
+        // identification is the source of truth when it succeeds.
+        const heuristic = detectIndustryHeuristic(
           [scraped.title, scraped.h1.join(" "), scraped.bodyText].join("\n"),
         );
-        const effectiveIndustry: Industry =
-          autoIndustry && detection.confidence !== "low"
-            ? detection.industry
-            : industry;
+        const userIndustry = industry;
+
+        send(controller, { type: "phase", phase: "generating_queries" });
+        const {
+          profile,
+          queries,
+          identification,
+          effectiveIndustry: llmEffectiveIndustry,
+        } = await generateQueries(
+          scraped,
+          {
+            industry: autoIndustry ? heuristic.industry : userIndustry,
+            city,
+            count: 6,
+          },
+        );
+
+        // Build a detection payload that reflects what actually got used.
+        // Source hierarchy:
+        //   LLM identification (high/medium) > user selection > heuristic
+        const finalIndustry: Industry = autoIndustry
+          ? llmEffectiveIndustry
+          : userIndustry;
+        const llmConf = identification?.industryConfidence ?? null;
         const source: "user" | "detected" =
-          autoIndustry && detection.confidence !== "low" ? "detected" : "user";
+          autoIndustry && llmConf && llmConf !== "low" ? "detected" : "user";
         const detectionPayload = {
-          detected: detection.industry,
-          confidence: detection.confidence,
-          used: effectiveIndustry,
+          detected: identification?.industry ?? heuristic.industry,
+          confidence: llmConf ?? heuristic.confidence,
+          used: finalIndustry,
           source,
+          businessType: identification?.businessType ?? "",
+          isLocalServiceBusiness:
+            identification?.isLocalServiceBusiness ?? true,
         };
         send(controller, {
           type: "industry_detected",
           data: detectionPayload,
         });
 
-        send(controller, { type: "phase", phase: "generating_queries" });
-        const { profile, queries } = await generateQueries(
-          scraped,
-          effectiveIndustry,
-          city,
-          6,
-        );
         send(controller, { type: "profile", data: profile });
         send(controller, { type: "queries", data: queries });
 
@@ -279,7 +298,7 @@ export async function POST(req: Request) {
           try {
             const id = await saveAudit({
               url,
-              industry: effectiveIndustry,
+              industry: finalIndustry,
               city: city || null,
               autoIndustry: !!autoIndustry,
               detection: detectionPayload,

@@ -79,6 +79,8 @@ type IndustryDetection = {
   confidence: "high" | "medium" | "low";
   used: Industry;
   source: "user" | "detected";
+  businessType?: string;
+  isLocalServiceBusiness?: boolean;
 };
 
 type Phase =
@@ -694,8 +696,10 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                     <>
                       Detected:{" "}
                       <span className="font-medium text-stone-900">
-                        {INDUSTRIES.find((i) => i.value === detection.used)
-                          ?.label ?? detection.used}
+                        {detection.businessType ||
+                          INDUSTRIES.find((i) => i.value === detection.used)
+                            ?.label ||
+                          detection.used}
                       </span>{" "}
                       <span className="text-stone-400">
                         ({detection.confidence} confidence)
@@ -707,9 +711,11 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                       {detection.confidence !== "low" && (
                         <span className="text-stone-400">
                           (detector also suggested{" "}
-                          {INDUSTRIES.find(
-                            (i) => i.value === detection.detected,
-                          )?.label ?? detection.detected}
+                          {detection.businessType ||
+                            INDUSTRIES.find(
+                              (i) => i.value === detection.detected,
+                            )?.label ||
+                            detection.detected}
                           )
                         </span>
                       )}
