@@ -2,6 +2,7 @@ import { getClient, CLAUDE_MODEL } from "@/lib/anthropic";
 import type { ScrapeResult } from "@/lib/scraper";
 import type { Industry } from "@/lib/industryPrompts";
 import { industryContext } from "@/lib/industryPrompts";
+import { getSeedQueries } from "@/lib/seedQueries";
 
 export type GeneratedQuery = {
   query: string;
@@ -113,22 +114,33 @@ export async function generateQueries(
     services: scraped.headings.slice(0, 10),
   };
 
+  // Half of the query slots are industry-standard seed queries — stable
+  // across runs so score changes reflect content changes, not query drift.
+  // The remaining slots are Claude-generated, specific to this business's
+  // actual service/topic mix so blind spots don't slip through.
+  const seeds = getSeedQueries(industry, profile.city, profile.name);
+  const seedCount = Math.min(seeds.length, Math.floor(count / 2));
+  const customCount = Math.max(1, count - seedCount);
+
   const userPrompt = [
-    `Generate ${count} AI-search queries for this business:`,
+    `Generate ${customCount} AI-search queries for this business:`,
     `Name: ${profile.name}`,
     `Industry context:\n${industryContext(industry)}`,
     `Service area: ${city || "(not specified)"}`,
     `Services/topics mentioned on their site: ${profile.services.join(", ") || "(none)"}`,
     ``,
-    `Aim for: 2 research, 2 comparison, 2 booking (adjust slightly if needed). Include the city naturally in most queries. Prefer queries that would reveal whether AI surfaces this specific business.`,
+    `These queries will be combined with ${seedCount} standard industry queries already covering generic intent. Your ${customCount} queries should be SPECIFIC to this business's actual services/topics above — don't duplicate the generic patterns below:`,
+    ...seeds.slice(0, seedCount).map((s, i) => `${i + 1}. ${s.query}`),
     ``,
-    `Respond with JSON only — an array of ${count} items.`,
+    `Mix intents: research (how-does-this-work questions), comparison (best-X-in-Y), booking (ready-to-buy). Include the city naturally where relevant.`,
+    ``,
+    `Respond with JSON only — an array of ${customCount} items.`,
   ].join("\n");
 
   const client = getClient();
   const response = await client.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 1200,
+    max_tokens: 800,
     system: GENERATE_SYSTEM,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -170,8 +182,15 @@ export async function generateQueries(
       queries.push({ query: raw.query.trim(), intent });
     }
   }
-  if (queries.length === 0) {
+  if (queries.length === 0 && seedCount === 0) {
     throw new Error("No valid queries generated.");
   }
-  return { profile, queries: queries.slice(0, count) };
+
+  // Interleave: seeds first (establish the baseline), then custom, to keep
+  // the query order deterministic-feeling across runs.
+  const merged: GeneratedQuery[] = [
+    ...seeds.slice(0, seedCount),
+    ...queries.slice(0, customCount),
+  ];
+  return { profile, queries: merged.slice(0, count) };
 }

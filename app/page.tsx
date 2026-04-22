@@ -98,6 +98,12 @@ export default function HomePage() {
         >
           See our full GEO package →
         </a>
+        <p className="mt-6 max-w-2xl text-[11px] leading-relaxed text-stone-400">
+          Each visibility audit makes ~8 Claude calls and 6 live web searches,
+          costing roughly $0.40 in API credits. This demo is rate-limited to 5
+          audits per day per IP. No data leaves your browser except the URL,
+          industry, and city you submit — audits aren&apos;t logged server-side.
+        </p>
       </footer>
     </main>
   );
