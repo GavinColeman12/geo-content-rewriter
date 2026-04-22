@@ -156,6 +156,39 @@ function priorRunFor(url: string, beforeTs: number): HistoryEntry | null {
   return hits[0] ?? null;
 }
 
+function historyUniqueByUrl(
+  all: HistoryEntry[],
+): Array<{ key: string; url: string; runs: HistoryEntry[] }> {
+  const byKey = new Map<string, { url: string; runs: HistoryEntry[] }>();
+  for (const e of all) {
+    const key = normalizeUrlKey(e.url);
+    const group = byKey.get(key);
+    if (group) {
+      group.runs.push(e);
+    } else {
+      byKey.set(key, { url: e.url, runs: [e] });
+    }
+  }
+  return Array.from(byKey.entries())
+    .map(([key, g]) => ({
+      key,
+      url: g.url,
+      runs: g.runs.sort((a, b) => b.savedAt - a.savedAt),
+    }))
+    .sort((a, b) => (b.runs[0]?.savedAt ?? 0) - (a.runs[0]?.savedAt ?? 0));
+}
+
+function humanTimeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  return `${days}d ago`;
+}
+
 type PersistedState = {
   version: 1;
   savedAt: number;
@@ -234,10 +267,18 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [priorRun, setPriorRun] = useState<HistoryEntry | null>(null);
   const [justCompletedAt, setJustCompletedAt] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyGroups, setHistoryGroups] = useState<
+    Array<{ key: string; url: string; runs: HistoryEntry[] }>
+  >([]);
+  const refreshHistoryGroups = useCallback(() => {
+    setHistoryGroups(historyUniqueByUrl(readHistory()));
+  }, []);
 
   // Restore from URL params or localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+    refreshHistoryGroups();
     const params = new URLSearchParams(window.location.search);
     const qUrl = params.get("url");
     const qIndustry = params.get("industry") as Industry | null;
@@ -310,6 +351,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       total: score.total,
       band: score.band,
     });
+    refreshHistoryGroups();
   }, [
     justCompletedAt,
     phase,
@@ -437,9 +479,29 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   const completedCount = results.filter(Boolean).length;
 
   const hasResult = phase === "done" && !!score;
+  const hasHistory = historyGroups.length > 0;
 
   return (
     <div className="space-y-6">
+      {hasHistory && (
+        <HistoryPanel
+          groups={historyGroups}
+          open={historyOpen}
+          onToggle={() => setHistoryOpen((v) => !v)}
+          onPick={(g) => {
+            setUrl(g.url);
+            setHistoryOpen(false);
+          }}
+          onClear={() => {
+            try {
+              localStorage.removeItem(HISTORY_KEY);
+            } catch {}
+            setHistoryGroups([]);
+            setHistoryOpen(false);
+          }}
+        />
+      )}
+
       {restoredAt && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-600">
           <span>
@@ -733,6 +795,144 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
   );
 }
 
+function HistoryPanel({
+  groups,
+  open,
+  onToggle,
+  onPick,
+  onClear,
+}: {
+  groups: Array<{ key: string; url: string; runs: HistoryEntry[] }>;
+  open: boolean;
+  onToggle: () => void;
+  onPick: (g: { key: string; url: string; runs: HistoryEntry[] }) => void;
+  onClear: () => void;
+}) {
+  const totalRuns = groups.reduce((a, g) => a + g.runs.length, 0);
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-xs"
+      >
+        <span className="flex items-center gap-2 text-stone-600">
+          <span className="font-medium text-stone-900">Recent audits</span>
+          <span className="text-stone-400">
+            {groups.length} {groups.length === 1 ? "URL" : "URLs"} · {totalRuns}{" "}
+            {totalRuns === 1 ? "run" : "runs"}
+          </span>
+        </span>
+        <span className="text-stone-400">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-stone-100">
+          <ul className="divide-y divide-stone-100">
+            {groups.slice(0, 8).map((g) => {
+              const latest = g.runs[0];
+              const prev = g.runs[1];
+              const delta =
+                latest && prev ? latest.overall - prev.overall : null;
+              return (
+                <li key={g.key}>
+                  <button
+                    onClick={() => onPick(g)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-stone-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm text-stone-900">
+                        {g.key}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-stone-500">
+                        {humanTimeAgo(latest.savedAt)} ·{" "}
+                        {g.runs.length === 1
+                          ? "1 run"
+                          : `${g.runs.length} runs`}
+                      </div>
+                    </div>
+                    {g.runs.length > 1 && (
+                      <Sparkline
+                        values={g.runs
+                          .slice()
+                          .reverse()
+                          .map((r) => r.overall)}
+                      />
+                    )}
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-semibold text-stone-900 tabular-nums">
+                        {latest.overall}
+                      </div>
+                      {delta !== null && delta !== 0 && (
+                        <div
+                          className={`text-[10px] font-medium tabular-nums ${
+                            delta > 0 ? "text-emerald-600" : "text-red-600"
+                          }`}
+                        >
+                          {delta > 0 ? "▲" : "▼"}
+                          {Math.abs(delta)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-stone-300">›</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2 text-[11px]">
+            <span className="text-stone-500">
+              Stored in your browser only. Click a row to reload the URL.
+            </span>
+            <button
+              onClick={onClear}
+              className="text-stone-500 underline underline-offset-2 hover:text-stone-700"
+            >
+              Clear all
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const w = 48;
+  const h = 18;
+  const max = Math.max(...values, 100);
+  const min = Math.min(...values, 0);
+  const range = Math.max(1, max - min);
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  const pts = values
+    .map((v, i) => {
+      const x = i * step;
+      const y = h - ((v - min) / range) * (h - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const last = values[values.length - 1];
+  const first = values[0];
+  const color =
+    last > first ? "#10b981" : last < first ? "#ef4444" : "#78716c";
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width={w}
+      height={h}
+      className="shrink-0"
+    >
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={pts}
+      />
+    </svg>
+  );
+}
+
 function NextStepsBar({
   onFixGaps,
   onCopyReport,
@@ -997,11 +1197,32 @@ function ScoreCard({
               </span>
             )}
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-stone-500">
-            Tested against live AI search via Claude&apos;s web-search tool.
-            Results reflect what ChatGPT, Perplexity, and Google AI Overviews
-            surface for the same queries — they share the same live web index.
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-stone-500">
+            <span>
+              Tested against live AI search via Claude&apos;s web-search tool.
+              Results reflect what ChatGPT, Perplexity, and Google AI Overviews
+              surface for the same queries — they share the same live web index.
+            </span>
+            <details className="group inline-block">
+              <summary className="cursor-pointer list-none text-stone-600 underline underline-offset-2 hover:text-stone-900">
+                How is this scored?
+              </summary>
+              <div className="mt-2 max-w-xl rounded-lg border border-stone-200 bg-stone-50 p-3 text-[11px] leading-relaxed text-stone-600">
+                Score ={" "}
+                <code className="rounded bg-white px-1 py-0.5 text-stone-900">
+                  round((hits + 0.5 × mentions) / total × 100)
+                </code>
+                .{" "}
+                <strong>Hit</strong> = your domain appeared in the AI&apos;s
+                cited sources. <strong>Mentioned</strong> = your business name
+                appeared in the AI&apos;s answer text but the AI cited a
+                different source (like a directory) instead of your page.{" "}
+                <strong>Missed</strong> = no appearance in citations or answer.
+                We test {score.total} queries across research, comparison, and
+                booking intent to balance the sample.
+              </div>
+            </details>
+          </div>
         </div>
       </div>
 
