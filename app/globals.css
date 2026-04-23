@@ -3,19 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --background: #fafaf9;
-  --foreground: #0c0a09;
-  --accent: #1f2937;
-  --muted: #78716c;
-  --border: #e7e5e4;
-  --highlight: #fef08a;
+  /* Crescendo design tokens */
+  --bg: #ffffff;
+  --bg-subtle: #fafaf7;
+  --bg-soft: #f8fafc;
+  --bg-dark: #0a0e27;
+
+  --text: #0a0e27;
+  --text-muted: #3a3f54;
+  --text-light: #6b7280;
+
+  --border: #e0ddd4;
+  --border-dark: rgba(10, 14, 39, 0.08);
+  --border-input: #d0cdc0;
+
+  --accent: #2563eb;
+  --accent-2: #6366f1;
+  --accent-gold: #f59e0b;
+
+  --gradient-hero: linear-gradient(135deg, #0a0e27 0%, #1a1f4e 50%, #0a0e27 100%);
+  --gradient-cta: linear-gradient(135deg, #0a0e27 0%, #2563eb 100%);
+  --shadow-elevated: 0 1px 2px rgba(10, 14, 39, 0.06),
+    0 20px 40px -20px rgba(10, 14, 39, 0.2);
+  --shadow-hairline: 0 1px 2px rgba(10, 14, 39, 0.04);
+}
+
+html,
+body {
+  background: var(--bg-subtle);
+  color: var(--text);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.12;
+  color: var(--text);
+}
+
+h1 em,
+h2 em,
+h3 em,
+.font-display em {
+  font-style: italic;
+  font-weight: 400;
+}
+
+pre,
+code,
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
 @layer utilities {
@@ -23,12 +72,132 @@ body {
     text-wrap: balance;
   }
   .diff-highlight {
-    background-color: #fef08a;
+    background-color: #fef3c7;
     padding: 0 2px;
     border-radius: 2px;
   }
+  .eyebrow {
+    font-family: var(--font-inter), ui-sans-serif, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-light);
+  }
 }
 
-pre, code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-image: var(--gradient-cta);
+    color: #ffffff;
+    font-family: var(--font-inter), sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    padding: 13px 26px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(10, 14, 39, 0.1),
+      0 8px 20px -10px rgba(37, 99, 235, 0.4);
+    transition: transform 0.12s ease, opacity 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.94;
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px solid var(--border-dark);
+    color: var(--text);
+    font-family: var(--font-inter), sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: rgba(10, 14, 39, 0.2);
+    background: var(--bg-subtle);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input-field {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid var(--border-input);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: var(--font-inter), sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color 0.12s ease;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .input-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .select-field {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid var(--border-input);
+    border-radius: 6px;
+    padding: 11px 16px;
+    font-family: var(--font-inter), sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color 0.12s ease;
+  }
+  .select-field:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .select-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .card-surface {
+    background: #ffffff;
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+    box-shadow: var(--shadow-hairline);
+  }
+  .card-surface-soft {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+  }
+  .card-elevated {
+    background: #ffffff;
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+    box-shadow: var(--shadow-elevated);
+  }
+  .hairline {
+    border-color: var(--border-dark);
+  }
 }

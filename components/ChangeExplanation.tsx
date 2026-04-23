@@ -5,7 +5,7 @@ export function ChangeExplanation({ text }: { text: string }) {
       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-amber-800">
         What changed and why
       </div>
-      <div className="whitespace-pre-wrap text-sm leading-relaxed text-stone-800">
+      <div className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
         {text}
       </div>
     </div>

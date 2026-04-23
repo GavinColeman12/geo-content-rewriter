@@ -7,14 +7,14 @@ export function BeforeAfterCompare({ pairs }: { pairs: ParagraphPair[] }) {
       {pairs.map((pair, idx) => (
         <div
           key={idx}
-          className="grid grid-cols-1 gap-4 rounded-xl border border-stone-200 bg-white p-5 md:grid-cols-2"
+          className="grid grid-cols-1 gap-4 rounded-xl border border-hairline bg-white p-5 md:grid-cols-2"
         >
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-stone-500">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-400"></span>
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-ink-light">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-ink-light"></span>
               Original
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">
               {pair.original}
             </p>
           </div>
@@ -23,7 +23,7 @@ export function BeforeAfterCompare({ pairs }: { pairs: ParagraphPair[] }) {
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
               Rewritten for AI search
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-900">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
               {renderHighlights(pair.rewritten).map((part, i) =>
                 part.type === "highlight" ? (
                   <span key={i} className="diff-highlight">

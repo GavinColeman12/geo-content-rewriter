@@ -47,15 +47,15 @@ export default async function AuditSharePage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-10 sm:py-16">
-      <header className="mb-8">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-stone-500">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+      <header className="mb-10">
+        <div className="eyebrow mb-4 flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-blue"></span>
           Crescendo Consulting · Shared GEO audit
         </div>
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+        <h1 className="text-balance font-display text-4xl text-ink sm:text-5xl">
           {(audit.profile as { name?: string })?.name || audit.url}
         </h1>
-        <p className="mt-2 text-sm text-stone-600">
+        <p className="mt-3 font-display text-[17px] leading-relaxed text-ink-muted">
           Audited{" "}
           {new Date(audit.createdAt).toLocaleDateString(undefined, {
             year: "numeric",
@@ -67,7 +67,7 @@ export default async function AuditSharePage({ params }: Props) {
             href={audit.url}
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-2 hover:text-stone-900"
+            className="underline underline-offset-2 hover:text-ink"
           >
             {audit.url.replace(/^https?:\/\//i, "")}
           </a>
@@ -76,29 +76,29 @@ export default async function AuditSharePage({ params }: Props) {
 
       <AuditView audit={audit} />
 
-      <section className="mt-12 rounded-2xl border border-stone-200 bg-stone-900 p-6 text-white sm:p-8">
-        <div className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-400">
+      <section className="mt-12 rounded-2xl bg-gradient-hero p-8 text-white sm:p-12">
+        <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/60">
           Want one for your site?
         </div>
-        <h2 className="mb-3 text-xl font-semibold tracking-tight">
+        <h2 className="mb-4 font-display text-3xl text-white sm:text-4xl">
           Audit your own URL →
         </h2>
-        <p className="mb-4 max-w-xl text-sm text-stone-300">
+        <p className="mb-6 max-w-xl font-display text-[17px] leading-relaxed text-white/80">
           Drop your URL, get the exact queries AI search answers for your
           business — and the rewrite that closes the gaps.
         </p>
         <Link
           href="/"
-          className="inline-block rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-stone-900 transition hover:bg-stone-100"
+          className="inline-block rounded-lg bg-white px-6 py-3 text-sm font-semibold text-ink transition hover:bg-paper-warm"
         >
           Run a free audit
         </Link>
       </section>
 
-      <footer className="mt-16 border-t border-stone-200 pt-6 text-xs text-stone-500">
+      <footer className="mt-16 border-t border-hairline pt-6 text-xs text-ink-light">
         <p>
           Audit ID:{" "}
-          <code className="rounded bg-stone-100 px-1.5 py-0.5 text-stone-700">
+          <code className="rounded bg-paper-soft px-1.5 py-0.5 text-ink-muted">
             {audit.id}
           </code>
           {" · "}

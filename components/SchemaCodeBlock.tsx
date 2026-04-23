@@ -24,15 +24,15 @@ export function SchemaCodeBlock({ schemaJson, raw }: { schemaJson: string; raw: 
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-900">
+    <div className="overflow-hidden rounded-xl border border-hairline bg-stone-900">
       <div className="flex items-center justify-between border-b border-stone-700 bg-stone-800 px-4 py-2.5">
-        <div className="text-xs font-medium uppercase tracking-wide text-stone-300">
+        <div className="text-xs font-medium uppercase tracking-wide text-ink-light/60">
           JSON-LD schema — paste into your site&apos;s &lt;head&gt;
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleValidate}
-            className="rounded-md bg-stone-700 px-3 py-1 text-xs text-stone-100 hover:bg-stone-600"
+            className="rounded-md bg-ink px-3 py-1 text-xs text-stone-100 hover:bg-ink-muted"
           >
             {validated === "valid"
               ? "✓ valid JSON"
@@ -42,7 +42,7 @@ export function SchemaCodeBlock({ schemaJson, raw }: { schemaJson: string; raw: 
           </button>
           <button
             onClick={handleCopy}
-            className="rounded-md bg-stone-100 px-3 py-1 text-xs font-medium text-stone-900 hover:bg-white"
+            className="rounded-md bg-paper-soft px-3 py-1 text-xs font-medium text-ink hover:bg-white"
           >
             {copied ? "Copied!" : "Copy"}
           </button>

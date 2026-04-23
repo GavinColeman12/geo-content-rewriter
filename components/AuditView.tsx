@@ -61,8 +61,8 @@ export function AuditView({ audit }: { audit: AuditRow }) {
         />
       )}
       {queries.length > 0 && (
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="mb-3 text-xl font-semibold tracking-tight text-stone-900">
+        <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="mb-3 text-xl font-semibold tracking-tight text-ink">
             Query-by-query results
           </h2>
           <div className="space-y-2">
@@ -77,8 +77,8 @@ export function AuditView({ audit }: { audit: AuditRow }) {
         </section>
       )}
       {analysis && (
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-xl font-semibold tracking-tight text-stone-900">
+        <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-xl font-semibold tracking-tight text-ink">
             GEO analysis
           </h2>
           <AnalysisMarkdownLite text={analysis} />
@@ -109,11 +109,11 @@ function ScoreCardReadOnly({ score }: { score: ScoreData }) {
   const c = 2 * Math.PI * 56;
   const offset = c - (pct / 100) * c;
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
       <div className="flex flex-col items-center gap-6 sm:flex-row">
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90">
-            <circle cx="64" cy="64" r="56" className="fill-none stroke-stone-200" strokeWidth="10" />
+            <circle cx="64" cy="64" r="56" className="fill-none stroke-hairline-warm" strokeWidth="10" />
             <circle
               cx="64"
               cy="64"
@@ -129,7 +129,7 @@ function ScoreCardReadOnly({ score }: { score: ScoreData }) {
             <div className={`text-4xl font-semibold ${bandColor}`}>
               {score.overall}
             </div>
-            <div className="text-xs uppercase tracking-wide text-stone-500">
+            <div className="text-xs uppercase tracking-wide text-ink-light">
               out of 100
             </div>
           </div>
@@ -138,9 +138,9 @@ function ScoreCardReadOnly({ score }: { score: ScoreData }) {
           <div className={`text-lg font-semibold ${bandColor}`}>
             {score.bandLabel}
           </div>
-          <div className="mt-1 text-sm text-stone-600">
+          <div className="mt-1 text-sm text-ink-muted">
             Appeared in{" "}
-            <span className="font-medium text-stone-900">
+            <span className="font-medium text-ink">
               {score.hitCount}
             </span>{" "}
             of {score.total} AI-search results
@@ -155,15 +155,15 @@ function ScoreCardReadOnly({ score }: { score: ScoreData }) {
             <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">
               {score.partialCount} mentioned
             </span>
-            <span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-700">
+            <span className="rounded-full bg-paper-soft px-2.5 py-1 font-medium text-ink-muted">
               {score.missCount} missed
             </span>
           </div>
         </div>
       </div>
       {score.byIntent?.length > 0 && (
-        <div className="mt-6 border-t border-stone-200 pt-5">
-          <div className="mb-3 text-xs font-medium uppercase tracking-wide text-stone-500">
+        <div className="mt-6 border-t border-hairline pt-5">
+          <div className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-light">
             By search intent
           </div>
           <div className="space-y-3">
@@ -185,17 +185,17 @@ function ScoreCardReadOnly({ score }: { score: ScoreData }) {
               return (
                 <div key={b.intent}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-stone-900">
+                    <span className="font-medium text-ink">
                       {label}
                     </span>
-                    <span className="tabular-nums text-stone-900">
+                    <span className="tabular-nums text-ink">
                       {b.hits}/{b.total}{" "}
-                      <span className="ml-2 text-xs text-stone-500">
+                      <span className="ml-2 text-xs text-ink-light">
                         {b.score}%
                       </span>
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div className="h-2 overflow-hidden rounded-full bg-paper-soft">
                     <div
                       className={`h-full ${barColor}`}
                       style={{ width: `${Math.max(3, b.score)}%` }}
@@ -220,11 +220,11 @@ function CompetitorPanelReadOnly({
 }) {
   const total = queries.length;
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-      <h2 className="mb-2 text-xl font-semibold tracking-tight text-stone-900">
+    <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
+      <h2 className="mb-2 text-xl font-semibold tracking-tight text-ink">
         Who&apos;s winning instead
       </h2>
-      <div className="divide-y divide-stone-100">
+      <div className="divide-y divide-hairline">
         {competitors.map((c) => {
           const sov = Math.round((c.citations / Math.max(1, total)) * 100);
           return (
@@ -234,21 +234,21 @@ function CompetitorPanelReadOnly({
                   href={`https://${c.domain}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="truncate text-sm font-medium text-stone-900 hover:underline"
+                  className="truncate text-sm font-medium text-ink hover:underline"
                 >
                   {c.domain}
                 </a>
-                <div className="shrink-0 text-xs text-stone-500 tabular-nums">
+                <div className="shrink-0 text-xs text-ink-light tabular-nums">
                   cited on{" "}
-                  <span className="font-medium text-stone-900">
+                  <span className="font-medium text-ink">
                     {c.citations}
                   </span>{" "}
                   / {total} queries
                 </div>
               </div>
-              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-stone-100">
+              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-paper-soft">
                 <div
-                  className="h-full bg-stone-400"
+                  className="h-full bg-ink-light"
                   style={{ width: `${Math.max(5, sov)}%` }}
                 />
               </div>
@@ -257,7 +257,7 @@ function CompetitorPanelReadOnly({
                   <span
                     key={i}
                     title={queries[i]?.query ?? ""}
-                    className="inline-flex items-center rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600"
+                    className="inline-flex items-center rounded-full bg-paper-soft px-2 py-0.5 text-[10px] font-medium text-ink-muted"
                   >
                     Q{i + 1}
                   </span>
@@ -283,9 +283,9 @@ function QueryRowReadOnly({
       ? "bg-emerald-50 text-emerald-700"
       : query.intent === "comparison"
         ? "bg-amber-50 text-amber-700"
-        : "bg-stone-100 text-stone-700";
+        : "bg-paper-soft text-ink-muted";
   const Badge = () => {
-    if (!result) return <span className="text-stone-300">·</span>;
+    if (!result) return <span className="text-ink-light/60">·</span>;
     if (result.error) return <span className="text-red-500">!</span>;
     if (result.presence.verdict === "hit") {
       return (
@@ -302,40 +302,40 @@ function QueryRowReadOnly({
       );
     }
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-stone-100 text-stone-500">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-paper-soft text-ink-light">
         ×
       </span>
     );
   };
   return (
-    <details className="group rounded-xl border border-stone-200 bg-white">
+    <details className="group rounded-xl border border-hairline bg-white">
       <summary className="flex cursor-pointer items-start gap-3 px-4 py-3 list-none">
         <span className="mt-0.5 shrink-0">
           <Badge />
         </span>
-        <span className="flex-1 text-sm text-stone-900">{query.query}</span>
+        <span className="flex-1 text-sm text-ink">{query.query}</span>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${intentColor}`}
         >
           {query.intent}
         </span>
         {result && (
-          <span className="ml-1 shrink-0 text-stone-400 transition group-open:rotate-45">
+          <span className="ml-1 shrink-0 text-ink-light transition group-open:rotate-45">
             +
           </span>
         )}
       </summary>
       {result && !result.error && (
-        <div className="border-t border-stone-100 px-4 py-4 text-sm">
-          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+        <div className="border-t border-hairline px-4 py-4 text-sm">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-light">
             What AI answered
           </div>
-          <div className="mb-4 whitespace-pre-wrap rounded-lg bg-stone-50 px-3 py-2.5 text-sm leading-relaxed text-stone-800">
+          <div className="mb-4 whitespace-pre-wrap rounded-lg bg-paper-warm px-3 py-2.5 text-sm leading-relaxed text-ink">
             {result.answerText}
           </div>
           {result.citations.length > 0 && (
             <>
-              <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+              <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-ink-light">
                 Sources cited ({result.citations.length})
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -358,7 +358,7 @@ function QueryRowReadOnly({
                       className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 ${
                         matched
                           ? "border-emerald-300 bg-emerald-50"
-                          : "border-stone-200 bg-white hover:border-stone-300"
+                          : "border-hairline bg-white hover:border-hairline-input"
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -369,11 +369,11 @@ function QueryRowReadOnly({
                         loading="lazy"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                        <div className="truncate text-[10px] font-medium uppercase tracking-wide text-ink-light">
                           {host}
                         </div>
                         <div
-                          className={`mt-0.5 line-clamp-2 text-xs font-medium ${matched ? "text-emerald-900" : "text-stone-900"}`}
+                          className={`mt-0.5 line-clamp-2 text-xs font-medium ${matched ? "text-emerald-900" : "text-ink"}`}
                         >
                           {c.title || c.url}
                         </div>
@@ -404,7 +404,7 @@ function AnalysisMarkdownLite({ text }: { text: string }) {
     const joined = para.join(" ").trim();
     if (joined) {
       blocks.push(
-        <p key={key++} className="text-sm leading-relaxed text-stone-800">
+        <p key={key++} className="text-sm leading-relaxed text-ink">
           {renderInline(joined)}
         </p>,
       );
@@ -416,7 +416,7 @@ function AnalysisMarkdownLite({ text }: { text: string }) {
     blocks.push(
       <ul
         key={key++}
-        className="ml-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+        className="ml-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink marker:text-ink-light"
       >
         {ul.map((it, i) => <li key={i}>{renderInline(it)}</li>)}
       </ul>,
@@ -428,7 +428,7 @@ function AnalysisMarkdownLite({ text }: { text: string }) {
     blocks.push(
       <ol
         key={key++}
-        className="ml-1 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+        className="ml-1 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-ink marker:text-ink-light"
       >
         {ol.map((it, i) => <li key={i}>{renderInline(it)}</li>)}
       </ol>,
@@ -448,7 +448,7 @@ function AnalysisMarkdownLite({ text }: { text: string }) {
       blocks.push(
         <h3
           key={key++}
-          className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-stone-900 first:mt-0"
+          className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-ink first:mt-0"
         >
           {line.slice(3)}
         </h3>,
@@ -490,7 +490,7 @@ function renderInline(text: string): React.ReactNode {
   while ((m = regex.exec(text)) !== null) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     parts.push(
-      <strong key={i++} className="font-semibold text-stone-900">
+      <strong key={i++} className="font-semibold text-ink">
         {m[0].slice(2, -2)}
       </strong>,
     );

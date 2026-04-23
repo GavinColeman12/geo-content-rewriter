@@ -587,7 +587,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       )}
 
       {restoredAt && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-600">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-paper-warm px-4 py-2 text-xs text-ink-muted">
           <span>
             Restored from your last audit — run it again to refresh, or paste a new URL.
           </span>
@@ -607,17 +607,17 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
               setAnalysis("");
               setDetection(null);
             }}
-            className="shrink-0 text-stone-700 underline underline-offset-2 hover:text-stone-900"
+            className="shrink-0 text-ink-muted underline underline-offset-2 hover:text-ink"
           >
             clear
           </button>
         </div>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-stone-700">
+            <label className="mb-2 block text-sm font-medium text-ink-muted">
               Your website URL
             </label>
             <input
@@ -625,17 +625,17 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
               value={url ?? ""}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="brightsmiledental.com  —  or  —  https://yoursite.com"
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-hairline-input bg-white px-4 py-3 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10"
               disabled={isRunning}
             />
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-ink-light">
               We&apos;ll scrape it, generate the questions your customers ask
               AI, then run those questions through live AI search to see if you
               show up.
             </p>
             {!url && !hasResult && !isRunning && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="text-[11px] text-stone-500">
+                <span className="text-[11px] text-ink-light">
                   Try one:
                 </span>
                 {EXAMPLE_URLS.map((ex) => (
@@ -647,7 +647,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                       setCity(ex.city);
                       setIndustry(ex.industry);
                     }}
-                    className="rounded-full border border-stone-200 bg-white px-2.5 py-0.5 text-[11px] text-stone-700 transition hover:border-stone-400 hover:bg-stone-50"
+                    className="rounded-full border border-hairline bg-white px-2.5 py-0.5 text-[11px] text-ink-muted transition hover:border-hairline-warm hover:bg-paper-warm"
                   >
                     {ex.label}
                   </button>
@@ -659,16 +659,16 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="text-sm font-medium text-stone-700">
+                <label className="text-sm font-medium text-ink-muted">
                   Your business type
                 </label>
-                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-stone-500">
+                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-ink-light">
                   <input
                     type="checkbox"
                     checked={autoIndustry}
                     onChange={(e) => setAutoIndustry(e.target.checked)}
                     disabled={isRunning}
-                    className="h-3 w-3 rounded border-stone-400 text-stone-900 focus:ring-stone-900/20"
+                    className="h-3 w-3 rounded border-hairline-warm text-ink focus:ring-brand-blue/20"
                   />
                   auto-detect
                 </label>
@@ -676,7 +676,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value as Industry)}
-                className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-60"
+                className="w-full rounded-lg border border-hairline-input bg-white px-4 py-2.5 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10 disabled:opacity-60"
                 disabled={isRunning || autoIndustry}
               >
                 {INDUSTRIES.map((i) => (
@@ -686,22 +686,22 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                 ))}
               </select>
               {autoIndustry && !detection && (
-                <p className="mt-1 text-[11px] text-stone-500">
+                <p className="mt-1 text-[11px] text-ink-light">
                   We&apos;ll detect from the page.
                 </p>
               )}
               {detection && (
-                <p className="mt-1 text-[11px] text-stone-600">
+                <p className="mt-1 text-[11px] text-ink-muted">
                   {detection.source === "detected" ? (
                     <>
                       Detected:{" "}
-                      <span className="font-medium text-stone-900">
+                      <span className="font-medium text-ink">
                         {detection.businessType ||
                           INDUSTRIES.find((i) => i.value === detection.used)
                             ?.label ||
                           detection.used}
                       </span>{" "}
-                      <span className="text-stone-400">
+                      <span className="text-ink-light">
                         ({detection.confidence} confidence)
                       </span>
                     </>
@@ -709,7 +709,7 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
                     <>
                       Using your selection{" "}
                       {detection.confidence !== "low" && (
-                        <span className="text-stone-400">
+                        <span className="text-ink-light">
                           (detector also suggested{" "}
                           {detection.businessType ||
                             INDUSTRIES.find(
@@ -725,14 +725,14 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
               )}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-stone-700">
+              <label className="mb-2 block text-sm font-medium text-ink-muted">
                 City or region you serve
               </label>
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="e.g. Austin, TX"
-                className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                className="w-full rounded-lg border border-hairline-input bg-white px-4 py-2.5 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10"
                 disabled={isRunning}
               />
             </div>
@@ -741,12 +741,12 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
           <button
             onClick={() => run()}
             disabled={isRunning || !valid}
-            className="w-full rounded-lg bg-stone-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary w-full"
           >
             {isRunning ? "Running…" : "Check my GEO visibility"}
           </button>
 
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-ink-light">
             Uses Claude&apos;s live web search — the same real web that
             ChatGPT and Perplexity search. Takes ~30–60 seconds. One free run
             per day per IP.
@@ -755,11 +755,11 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       </section>
 
       {phase !== "idle" && phase !== "done" && phase !== "error" && (
-        <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700">
+        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-3 text-sm text-ink-muted">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
           <span>{phaseLabels[phase]}</span>
           {phase === "running_queries" && queries.length > 0 && (
-            <span className="ml-auto text-xs text-stone-500">
+            <span className="ml-auto text-xs text-ink-light">
               {completedCount} / {queries.length}
             </span>
           )}
@@ -776,16 +776,16 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       {meta && <ScrapeMetaCard meta={meta} />}
 
       {profile && (
-        <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
-          <div className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">
+        <div className="rounded-xl border border-hairline bg-white p-4 text-sm">
+          <div className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-light">
             Identified as
           </div>
-          <div className="text-stone-900">
+          <div className="text-ink">
             <span className="font-medium">{profile.name}</span>
             {profile.city && (
-              <span className="text-stone-500"> · {profile.city}</span>
+              <span className="text-ink-light"> · {profile.city}</span>
             )}
-            <span className="text-stone-500"> · {profile.domain}</span>
+            <span className="text-ink-light"> · {profile.domain}</span>
           </div>
         </div>
       )}
@@ -838,10 +838,10 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
 
       {queries.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xl font-semibold tracking-tight text-stone-900">
+          <h2 className="mb-3 text-xl font-semibold tracking-tight text-ink">
             Query-by-query results
           </h2>
-          <p className="mb-4 text-sm text-stone-600">
+          <p className="mb-4 text-sm text-ink-muted">
             Each query was run against live AI search. We check if your domain
             was cited, or your name appeared in the answer.
           </p>
@@ -859,13 +859,13 @@ export function VisibilityChecker({ onSendToRewriter }: Props = {}) {
       )}
 
       {analysis && (
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+            <h2 className="text-xl font-semibold tracking-tight text-ink">
               GEO analysis
             </h2>
             {phase === "analyzing" && (
-              <div className="flex items-center gap-1.5 text-xs text-stone-500">
+              <div className="flex items-center gap-1.5 text-xs text-ink-light">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
                 writing
               </div>
@@ -941,23 +941,23 @@ function HistoryPanel({
 }) {
   const totalRuns = groups.reduce((a, g) => a + g.runs.length, 0);
   return (
-    <div className="rounded-xl border border-stone-200 bg-white">
+    <div className="rounded-xl border border-hairline bg-white">
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-xs"
       >
-        <span className="flex items-center gap-2 text-stone-600">
-          <span className="font-medium text-stone-900">Recent audits</span>
-          <span className="text-stone-400">
+        <span className="flex items-center gap-2 text-ink-muted">
+          <span className="font-medium text-ink">Recent audits</span>
+          <span className="text-ink-light">
             {groups.length} {groups.length === 1 ? "URL" : "URLs"} · {totalRuns}{" "}
             {totalRuns === 1 ? "run" : "runs"}
           </span>
         </span>
-        <span className="text-stone-400">{open ? "▲" : "▼"}</span>
+        <span className="text-ink-light">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
-        <div className="border-t border-stone-100">
-          <ul className="divide-y divide-stone-100">
+        <div className="border-t border-hairline">
+          <ul className="divide-y divide-hairline">
             {groups.slice(0, 8).map((g) => {
               const latest = g.runs[0];
               const prev = g.runs[1];
@@ -967,13 +967,13 @@ function HistoryPanel({
                 <li key={g.key}>
                   <button
                     onClick={() => onPick(g)}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-stone-50"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-paper-warm"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm text-stone-900">
+                      <div className="truncate text-sm text-ink">
                         {g.key}
                       </div>
-                      <div className="mt-0.5 text-[11px] text-stone-500">
+                      <div className="mt-0.5 text-[11px] text-ink-light">
                         {humanTimeAgo(latest.savedAt)} ·{" "}
                         {g.runs.length === 1
                           ? "1 run"
@@ -989,7 +989,7 @@ function HistoryPanel({
                       />
                     )}
                     <div className="shrink-0 text-right">
-                      <div className="text-sm font-semibold text-stone-900 tabular-nums">
+                      <div className="text-sm font-semibold text-ink tabular-nums">
                         {latest.overall}
                       </div>
                       {delta !== null && delta !== 0 && (
@@ -1003,19 +1003,19 @@ function HistoryPanel({
                         </div>
                       )}
                     </div>
-                    <span className="shrink-0 text-stone-300">›</span>
+                    <span className="shrink-0 text-ink-light/60">›</span>
                   </button>
                 </li>
               );
             })}
           </ul>
-          <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2 text-[11px]">
-            <span className="text-stone-500">
+          <div className="flex items-center justify-between border-t border-hairline px-4 py-2 text-[11px]">
+            <span className="text-ink-light">
               Stored in your browser only. Click a row to reload the URL.
             </span>
             <button
               onClick={onClear}
-              className="text-stone-500 underline underline-offset-2 hover:text-stone-700"
+              className="text-ink-light underline underline-offset-2 hover:text-ink-muted"
             >
               Clear all
             </button>
@@ -1081,24 +1081,24 @@ function NextStepsBar({
 }) {
   const [copied, setCopied] = useState(false);
   return (
-    <section className="rounded-2xl border border-stone-200 bg-stone-50 p-6">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">
+    <section className="rounded-2xl border border-hairline bg-paper-warm p-6">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-light">
         Next steps
       </div>
-      <h2 className="mb-4 text-lg font-semibold tracking-tight text-stone-900">
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-ink">
         Turn this audit into changes
       </h2>
       <div className="grid gap-3 sm:grid-cols-3">
         <button
           onClick={onFixGaps}
           disabled={!rewriterEnabled || missedCount === 0}
-          className="rounded-xl border border-stone-900 bg-stone-900 px-5 py-4 text-left text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-xl bg-gradient-cta px-5 py-4 text-left text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <div className="text-sm">
             Fix the {missedCount} missed {missedCount === 1 ? "query" : "queries"}{" "}
             →
           </div>
-          <div className="mt-1 text-xs font-normal text-stone-300">
+          <div className="mt-1 text-xs font-normal text-white/70">
             Jump to the Content Rewriter with these queries loaded as the target.
           </div>
         </button>
@@ -1108,23 +1108,23 @@ function NextStepsBar({
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
-          className="rounded-xl border border-stone-300 bg-white px-5 py-4 text-left text-sm font-medium text-stone-900 transition hover:border-stone-400"
+          className="rounded-xl border border-hairline-input bg-white px-5 py-4 text-left text-sm font-medium text-ink transition hover:border-hairline-warm"
         >
           <div className="text-sm">
             {copied ? "Report copied ✓" : "Copy full report"}
           </div>
-          <div className="mt-1 text-xs font-normal text-stone-500">
+          <div className="mt-1 text-xs font-normal text-ink-light">
             Markdown with score, competitors, queries, and analysis.
           </div>
         </button>
         <button
           onClick={onCopyShareLink}
-          className="rounded-xl border border-stone-300 bg-white px-5 py-4 text-left text-sm font-medium text-stone-900 transition hover:border-stone-400"
+          className="rounded-xl border border-hairline-input bg-white px-5 py-4 text-left text-sm font-medium text-ink transition hover:border-hairline-warm"
         >
           <div className="text-sm">
             {linkCopied ? "Link copied ✓" : "Copy share link"}
           </div>
-          <div className="mt-1 text-xs font-normal text-stone-500">
+          <div className="mt-1 text-xs font-normal text-ink-light">
             Prefilled URL — recipient can re-run the audit in one click.
           </div>
         </button>
@@ -1259,7 +1259,7 @@ function ScoreCard({
   const offset = circumference - (pct / 100) * circumference;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90">
@@ -1267,7 +1267,7 @@ function ScoreCard({
               cx="64"
               cy="64"
               r="56"
-              className="fill-none stroke-stone-200"
+              className="fill-none stroke-hairline-warm"
               strokeWidth="10"
             />
             <circle
@@ -1285,7 +1285,7 @@ function ScoreCard({
             <div className={`text-4xl font-semibold ${bandColor}`}>
               {score.overall}
             </div>
-            <div className="text-xs uppercase tracking-wide text-stone-500">
+            <div className="text-xs uppercase tracking-wide text-ink-light">
               out of 100
             </div>
           </div>
@@ -1295,9 +1295,9 @@ function ScoreCard({
             {score.bandLabel}
           </div>
           {profile && (
-            <div className="mt-1 text-sm text-stone-600">
+            <div className="mt-1 text-sm text-ink-muted">
               {profile.name} appeared in{" "}
-              <span className="font-medium text-stone-900">
+              <span className="font-medium text-ink">
                 {score.hitCount}
               </span>{" "}
               of {score.total} AI-search results
@@ -1313,11 +1313,11 @@ function ScoreCard({
             <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">
               {score.partialCount} mentioned
             </span>
-            <span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-700">
+            <span className="rounded-full bg-paper-soft px-2.5 py-1 font-medium text-ink-muted">
               {score.missCount} missed
             </span>
             {score.errorCount > 0 && (
-              <span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-500">
+              <span className="rounded-full bg-paper-soft px-2.5 py-1 font-medium text-ink-light">
                 {score.errorCount} errors
               </span>
             )}
@@ -1345,19 +1345,19 @@ function ScoreCard({
               industry={industry}
             />
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-stone-500">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-ink-light">
             <span>
               Tested against live AI search via Claude&apos;s web-search tool.
               Results reflect what ChatGPT, Perplexity, and Google AI Overviews
               surface for the same queries — they share the same live web index.
             </span>
             <details className="group inline-block">
-              <summary className="cursor-pointer list-none text-stone-600 underline underline-offset-2 hover:text-stone-900">
+              <summary className="cursor-pointer list-none text-ink-muted underline underline-offset-2 hover:text-ink">
                 How is this scored?
               </summary>
-              <div className="mt-2 max-w-xl rounded-lg border border-stone-200 bg-stone-50 p-3 text-[11px] leading-relaxed text-stone-600">
+              <div className="mt-2 max-w-xl rounded-lg border border-hairline bg-paper-warm p-3 text-[11px] leading-relaxed text-ink-muted">
                 Score ={" "}
-                <code className="rounded bg-white px-1 py-0.5 text-stone-900">
+                <code className="rounded bg-white px-1 py-0.5 text-ink">
                   round((hits + 0.5 × mentions) / total × 100)
                 </code>
                 .{" "}
@@ -1375,8 +1375,8 @@ function ScoreCard({
       </div>
 
       {score.byIntent.length > 0 && (
-        <div className="mt-6 border-t border-stone-200 pt-5">
-          <div className="mb-3 text-xs font-medium uppercase tracking-wide text-stone-500">
+        <div className="mt-6 border-t border-hairline pt-5">
+          <div className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-light">
             By search intent
           </div>
           <div className="space-y-3">
@@ -1400,20 +1400,20 @@ function CompetitorPanel({
   totalQueries: number;
 }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+        <h2 className="text-xl font-semibold tracking-tight text-ink">
           Who&apos;s winning instead
         </h2>
-        <span className="text-xs text-stone-500">
+        <span className="text-xs text-ink-light">
           top cited domains, excluding social &amp; directories
         </span>
       </div>
-      <p className="mb-4 text-sm text-stone-600">
+      <p className="mb-4 text-sm text-ink-muted">
         These are the other sites AI search cited for your queries. If your
         competitors are here and you&apos;re not, this is where to focus.
       </p>
-      <div className="divide-y divide-stone-100">
+      <div className="divide-y divide-hairline">
         {competitors.map((c) => {
           const shareOfVoice = Math.round(
             (c.citations / Math.max(1, totalQueries)) * 100,
@@ -1425,21 +1425,21 @@ function CompetitorPanel({
                   href={`https://${c.domain}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="truncate text-sm font-medium text-stone-900 hover:underline"
+                  className="truncate text-sm font-medium text-ink hover:underline"
                 >
                   {c.domain}
                 </a>
-                <div className="shrink-0 text-xs text-stone-500 tabular-nums">
+                <div className="shrink-0 text-xs text-ink-light tabular-nums">
                   cited on{" "}
-                  <span className="font-medium text-stone-900">
+                  <span className="font-medium text-ink">
                     {c.citations}
                   </span>{" "}
                   / {totalQueries} queries
                 </div>
               </div>
-              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-stone-100">
+              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-paper-soft">
                 <div
-                  className="h-full bg-stone-400"
+                  className="h-full bg-ink-light"
                   style={{ width: `${Math.max(5, shareOfVoice)}%` }}
                 />
               </div>
@@ -1448,7 +1448,7 @@ function CompetitorPanel({
                   <span
                     key={i}
                     title={queries[i]?.query ?? ""}
-                    className="inline-flex items-center rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600"
+                    className="inline-flex items-center rounded-full bg-paper-soft px-2 py-0.5 text-[10px] font-medium text-ink-muted"
                   >
                     Q{i + 1}
                   </span>
@@ -1481,16 +1481,16 @@ function SimilarBusinessesPanel({
     INDUSTRIES.find((i) => i.value === industry)?.label ?? industry;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+        <h2 className="text-xl font-semibold tracking-tight text-ink">
           Similar businesses we&apos;ve audited
         </h2>
-        <span className="text-xs text-stone-500">
+        <span className="text-xs text-ink-light">
           {industryLabel.toLowerCase()} · sorted by score proximity
         </span>
       </div>
-      <p className="mb-4 text-sm text-stone-600">
+      <p className="mb-4 text-sm text-ink-muted">
         Other {industryLabel.toLowerCase()} audits with scores closest to
         yours ({anchorScore}). Click one to see the full report — which queries
         they won, who beat them, what they&apos;re missing.
@@ -1512,14 +1512,14 @@ function SimilarBusinessesPanel({
                 }
               : diff < -3
                 ? { text: `${diff}`, cls: "bg-red-100 text-red-700" }
-                : { text: "≈", cls: "bg-stone-100 text-stone-600" };
+                : { text: "≈", cls: "bg-paper-soft text-ink-muted" };
           return (
             <a
               key={it.id}
               href={`/a/${it.id}`}
               target="_blank"
               rel="noreferrer"
-              className="group flex items-start gap-3 rounded-lg border border-stone-200 bg-white px-4 py-3 transition hover:border-stone-400"
+              className="group flex items-start gap-3 rounded-lg border border-hairline bg-white px-4 py-3 transition hover:border-hairline-warm"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -1530,16 +1530,16 @@ function SimilarBusinessesPanel({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-medium text-stone-900">
+                  <span className="truncate text-sm font-medium text-ink">
                     {it.profileName || host}
                   </span>
                 </div>
-                <div className="truncate text-[11px] text-stone-500">
+                <div className="truncate text-[11px] text-ink-light">
                   {host}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-sm font-semibold text-stone-900 tabular-nums">
+                <div className="text-sm font-semibold text-ink tabular-nums">
                   {it.overall}
                 </div>
                 <span
@@ -1548,7 +1548,7 @@ function SimilarBusinessesPanel({
                   {badge.text}
                 </span>
               </div>
-              <span className="shrink-0 self-center text-stone-300 transition group-hover:text-stone-500">
+              <span className="shrink-0 self-center text-ink-light/60 transition group-hover:text-ink-light">
                 ›
               </span>
             </a>
@@ -1616,38 +1616,38 @@ function BenchmarkLine({
   const isMin = benchmark.count < 10;
 
   return (
-    <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-3">
+    <div className="mt-4 rounded-lg border border-hairline bg-paper-warm p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <span
           className={`rounded-full px-2 py-0.5 font-medium ring-1 ring-inset ${verdict.colorClass}`}
         >
           {verdict.text}
         </span>
-        <span className="text-stone-500">
+        <span className="text-ink-light">
           n={benchmark.count}
           {isMin && " · small sample"}
         </span>
       </div>
       <div className="relative h-6">
-        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-stone-200" />
+        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-hairline" />
         <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-stone-400"
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-ink-light"
           style={{ left: `${p25X}%`, width: `${p75X - p25X}%` }}
         />
         <div
-          className="absolute top-0 h-full w-px bg-stone-600"
+          className="absolute top-0 h-full w-px bg-ink-muted"
           style={{ left: `${medianX}%` }}
           title={`Median: ${Math.round(median)}`}
         />
         <div
-          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-stone-900 ring-2 ring-white"
+          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-blue ring-2 ring-white"
           style={{ left: `${yoursX}%` }}
           title={`You: ${yours}`}
         />
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-stone-500 tabular-nums">
+      <div className="mt-1 flex justify-between text-[10px] text-ink-light tabular-nums">
         <span>{barMin}</span>
-        <span className="font-medium text-stone-700">
+        <span className="font-medium text-ink-muted">
           median {Math.round(median)}
         </span>
         <span>100</span>
@@ -1683,18 +1683,18 @@ function IntentBar({ breakdown: b }: { breakdown: IntentBreakdown }) {
     <div>
       <div className="mb-1 flex items-center justify-between text-sm">
         <div>
-          <span className="font-medium text-stone-900">{intentLabel}</span>{" "}
-          <span className="text-xs text-stone-500">{intentSub}</span>
+          <span className="font-medium text-ink">{intentLabel}</span>{" "}
+          <span className="text-xs text-ink-light">{intentSub}</span>
         </div>
-        <div className="text-sm tabular-nums text-stone-900">
+        <div className="text-sm tabular-nums text-ink">
           <span className="font-medium">{b.hits}</span>
-          <span className="text-stone-400">/{b.total}</span>
-          <span className="ml-2 text-xs text-stone-500">
+          <span className="text-ink-light">/{b.total}</span>
+          <span className="ml-2 text-xs text-ink-light">
             {b.score}%
           </span>
         </div>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+      <div className="h-2 overflow-hidden rounded-full bg-paper-soft">
         <div
           className={`h-full transition-all ${barColor}`}
           style={{ width: `${Math.max(3, b.score)}%` }}
@@ -1718,51 +1718,51 @@ function QueryRow({
       ? "bg-emerald-50 text-emerald-700"
       : query.intent === "comparison"
         ? "bg-amber-50 text-amber-700"
-        : "bg-stone-100 text-stone-700";
+        : "bg-paper-soft text-ink-muted";
 
   return (
-    <details className="group rounded-xl border border-stone-200 bg-white">
+    <details className="group rounded-xl border border-hairline bg-white">
       <summary className="flex cursor-pointer items-start gap-3 px-4 py-3 list-none">
         <span className="mt-0.5 shrink-0">
           {result ? (
             <VerdictBadge verdict={result.presence.verdict} />
           ) : isRunning ? (
             <span className="inline-flex h-6 w-6 items-center justify-center">
-              <span className="h-3 w-3 animate-pulse rounded-full bg-stone-300"></span>
+              <span className="h-3 w-3 animate-pulse rounded-full bg-ink-light/40"></span>
             </span>
           ) : (
-            <span className="inline-flex h-6 w-6 items-center justify-center text-stone-300">
+            <span className="inline-flex h-6 w-6 items-center justify-center text-ink-light/60">
               ·
             </span>
           )}
         </span>
-        <span className="flex-1 text-sm text-stone-900">{query.query}</span>
+        <span className="flex-1 text-sm text-ink">{query.query}</span>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${intentColor}`}
         >
           {query.intent}
         </span>
         {result && (
-          <span className="ml-1 shrink-0 text-stone-400 transition group-open:rotate-45">
+          <span className="ml-1 shrink-0 text-ink-light transition group-open:rotate-45">
             +
           </span>
         )}
       </summary>
       {result && (
-        <div className="border-t border-stone-100 px-4 py-4 text-sm">
+        <div className="border-t border-hairline px-4 py-4 text-sm">
           {result.error ? (
             <div className="text-red-700">Error: {result.error}</div>
           ) : (
             <>
-              <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+              <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-light">
                 What AI answered
               </div>
-              <div className="mb-4 whitespace-pre-wrap rounded-lg bg-stone-50 px-3 py-2.5 text-sm leading-relaxed text-stone-800">
+              <div className="mb-4 whitespace-pre-wrap rounded-lg bg-paper-warm px-3 py-2.5 text-sm leading-relaxed text-ink">
                 {result.answerText}
               </div>
               {result.citations.length > 0 && (
                 <>
-                  <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                  <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-ink-light">
                     Sources cited ({result.citations.length})
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1811,7 +1811,7 @@ function CitationCard({
       className={`group flex items-start gap-2.5 rounded-lg border px-3 py-2 transition ${
         matched
           ? "border-emerald-300 bg-emerald-50 hover:border-emerald-400"
-          : "border-stone-200 bg-white hover:border-stone-300"
+          : "border-hairline bg-white hover:border-hairline-input"
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1823,7 +1823,7 @@ function CitationCard({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-[10px] font-medium uppercase tracking-wide text-stone-500">
+          <span className="truncate text-[10px] font-medium uppercase tracking-wide text-ink-light">
             {host}
           </span>
           {matched && (
@@ -1834,7 +1834,7 @@ function CitationCard({
         </div>
         <div
           className={`mt-0.5 line-clamp-2 text-xs font-medium ${
-            matched ? "text-emerald-900" : "text-stone-900 group-hover:text-stone-700"
+            matched ? "text-emerald-900" : "text-ink group-hover:text-ink-muted"
           }`}
         >
           {title || url}
@@ -1868,7 +1868,7 @@ function VerdictBadge({ verdict }: { verdict: "hit" | "partial" | "miss" }) {
   return (
     <span
       title="Not cited, not mentioned"
-      className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-stone-100 text-stone-500"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-paper-soft text-ink-light"
     >
       ×
     </span>
@@ -1887,7 +1887,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode {
     const token = m[0];
     if (token.startsWith("**")) {
       parts.push(
-        <strong key={`${keyBase}-b-${i++}`} className="font-semibold text-stone-900">
+        <strong key={`${keyBase}-b-${i++}`} className="font-semibold text-ink">
           {token.slice(2, -2)}
         </strong>,
       );
@@ -1895,7 +1895,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode {
       parts.push(
         <code
           key={`${keyBase}-c-${i++}`}
-          className="rounded bg-stone-100 px-1 py-0.5 text-[0.9em] text-stone-800"
+          className="rounded bg-paper-soft px-1 py-0.5 text-[0.9em] text-ink"
         >
           {token.slice(1, -1)}
         </code>,
@@ -1922,7 +1922,7 @@ function AnalysisMarkdown({ text }: { text: string }) {
       blocks.push(
         <p
           key={key++}
-          className="text-sm leading-relaxed text-stone-800"
+          className="text-sm leading-relaxed text-ink"
         >
           {renderInline(joined, `p-${key}`)}
         </p>,
@@ -1935,7 +1935,7 @@ function AnalysisMarkdown({ text }: { text: string }) {
     blocks.push(
       <ul
         key={key++}
-        className="ml-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+        className="ml-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink marker:text-ink-light"
       >
         {ulItems.map((it, i) => (
           <li key={i}>{renderInline(it, `ul-${key}-${i}`)}</li>
@@ -1949,7 +1949,7 @@ function AnalysisMarkdown({ text }: { text: string }) {
     blocks.push(
       <ol
         key={key++}
-        className="ml-1 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-stone-800 marker:text-stone-400"
+        className="ml-1 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-ink marker:text-ink-light"
       >
         {olItems.map((it, i) => (
           <li key={i}>{renderInline(it, `ol-${key}-${i}`)}</li>
@@ -1971,7 +1971,7 @@ function AnalysisMarkdown({ text }: { text: string }) {
       blocks.push(
         <h3
           key={key++}
-          className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-stone-900 first:mt-0"
+          className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-ink first:mt-0"
         >
           {line.slice(3)}
         </h3>,

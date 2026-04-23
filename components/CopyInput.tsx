@@ -38,7 +38,7 @@ export function CopyInput({
   return (
     <div className="space-y-5">
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">
+        <label className="mb-2 block text-sm font-medium text-ink-muted">
           Paste your website URL
         </label>
         <input
@@ -46,23 +46,23 @@ export function CopyInput({
           value={url ?? ""}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="brightsmiledental.com  —  or  —  https://yoursite.com/about"
-          className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+          className="w-full rounded-lg border border-hairline-input bg-white px-4 py-3 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10"
           disabled={isRunning}
         />
-        <p className="mt-1 text-xs text-stone-500">
+        <p className="mt-1 text-xs text-ink-light">
           We&apos;ll fetch the page, read what&apos;s there, and rewrite it. Point us at the About or Services page for best results — the homepage works too.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-medium text-stone-700">
+          <label className="mb-2 block text-sm font-medium text-ink-muted">
             Your business type
           </label>
           <select
             value={industry}
             onChange={(e) => setIndustry(e.target.value as Industry)}
-            className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            className="w-full rounded-lg border border-hairline-input bg-white px-4 py-2.5 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10"
             disabled={isRunning}
           >
             {INDUSTRIES.map((i) => (
@@ -73,28 +73,28 @@ export function CopyInput({
           </select>
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium text-stone-700">
+          <label className="mb-2 block text-sm font-medium text-ink-muted">
             City or region you serve
           </label>
           <input
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="e.g. Austin, TX  /  Seattle's Capitol Hill"
-            className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            className="w-full rounded-lg border border-hairline-input bg-white px-4 py-2.5 text-sm text-ink shadow-sm focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/10"
             disabled={isRunning}
           />
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-hairline bg-paper-warm px-4 py-3">
         <input
           type="checkbox"
           checked={showResearch}
           onChange={(e) => setShowResearch(e.target.checked)}
-          className="h-4 w-4 rounded border-stone-400 text-stone-900 focus:ring-stone-900/20"
+          className="h-4 w-4 rounded border-hairline-warm text-ink focus:ring-brand-blue/20"
           disabled={isRunning}
         />
-        <span className="text-sm text-stone-700">
+        <span className="text-sm text-ink-muted">
           Show me the query-coverage audit first — which AI-search queries your page answers well, partially, or misses.
         </span>
       </label>
@@ -102,7 +102,7 @@ export function CopyInput({
       <button
         onClick={onSubmit}
         disabled={isRunning || !valid}
-        className="w-full rounded-lg bg-stone-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-primary w-full"
       >
         {isRunning ? "Working…" : "Scan and rewrite for AI search"}
       </button>

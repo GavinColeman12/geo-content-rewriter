@@ -5,16 +5,16 @@ export default function EmbedPage() {
   return (
     <>
       <EmbedAutoResize />
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        <header className="mb-6">
-          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-stone-500">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+      <main className="mx-auto max-w-4xl px-5 py-8 sm:px-6 sm:py-10">
+        <header className="mb-8">
+          <div className="eyebrow mb-3 flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-blue"></span>
             GEO Visibility Checker
           </div>
-          <h1 className="text-balance text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">
-            Are you visible to AI search?
+          <h1 className="text-balance font-display text-3xl text-ink sm:text-4xl">
+            Are you visible to <em>AI search?</em>
           </h1>
-          <p className="mt-2 max-w-2xl text-balance text-sm leading-relaxed text-stone-600">
+          <p className="mt-3 max-w-2xl font-display text-[16px] leading-relaxed text-ink-muted">
             Drop your URL. We run the queries your customers actually ask
             ChatGPT, Perplexity, and Claude — then score how often you show
             up.
@@ -23,13 +23,13 @@ export default function EmbedPage() {
 
         <VisibilityChecker />
 
-        <footer className="mt-10 border-t border-stone-200 pt-4 text-center text-[11px] text-stone-500">
+        <footer className="mt-10 border-t border-hairline pt-4 text-center text-[11px] text-ink-light">
           Powered by{" "}
           <a
             href="https://crescendo-consulting.net"
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-2 hover:text-stone-800"
+            className="underline underline-offset-2 hover:text-ink"
           >
             Crescendo Consulting
           </a>
@@ -38,7 +38,7 @@ export default function EmbedPage() {
             href="/"
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-2 hover:text-stone-800"
+            className="underline underline-offset-2 hover:text-ink"
           >
             Open the full toolkit
           </a>

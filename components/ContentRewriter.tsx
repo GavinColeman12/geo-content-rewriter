@@ -170,7 +170,7 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
               clear
             </button>
           </div>
-          <div className="mb-2 text-sm text-stone-800">
+          <div className="mb-2 text-sm text-ink">
             Rewrite this page so it can surface for the{" "}
             <span className="font-medium">
               {handoff.missedQueries.length}{" "}
@@ -178,7 +178,7 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
             </span>{" "}
             AI search missed:
           </div>
-          <ul className="space-y-1 text-sm text-stone-700">
+          <ul className="space-y-1 text-sm text-ink-muted">
             {handoff.missedQueries.slice(0, 6).map((q, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0 text-emerald-600">→</span>
@@ -189,7 +189,7 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
         </div>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="rounded-2xl border border-hairline bg-white p-6 shadow-sm sm:p-8">
         <CopyInput
           url={url}
           setUrl={setUrl}
@@ -205,7 +205,7 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
       </section>
 
       {isRunning && (
-        <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600">
+        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-3 text-sm text-ink-muted">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
           {phaseLabel}
         </div>
@@ -229,17 +229,17 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
           {parsed.pairs.length > 0 && (
             <section>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+                <h2 className="text-xl font-semibold tracking-tight text-ink">
                   The rewrite
                 </h2>
                 {phase === "rewriting" && (
-                  <div className="flex items-center gap-1.5 text-xs text-stone-500">
+                  <div className="flex items-center gap-1.5 text-xs text-ink-light">
                     <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
                     streaming
                   </div>
                 )}
               </div>
-              <p className="mb-4 text-sm text-stone-600">
+              <p className="mb-4 text-sm text-ink-muted">
                 Your actual copy on the left, rewritten for AI-search on the
                 right. Highlighted phrases are new or changed.
               </p>
@@ -249,10 +249,10 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
 
           {parsed.faqs.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xl font-semibold tracking-tight text-stone-900">
+              <h2 className="mb-2 text-xl font-semibold tracking-tight text-ink">
                 Add these FAQs to your site
               </h2>
-              <p className="mb-4 text-sm text-stone-600">
+              <p className="mb-4 text-sm text-ink-muted">
                 AI search engines love Q&amp;A structure.
               </p>
               <FAQSection faqs={parsed.faqs} />
@@ -261,12 +261,12 @@ export function ContentRewriter({ handoff, onClearHandoff }: Props = {}) {
 
           {(parsed.schemaJson || parsed.schemaRaw) && (
             <section>
-              <h2 className="mb-2 text-xl font-semibold tracking-tight text-stone-900">
+              <h2 className="mb-2 text-xl font-semibold tracking-tight text-ink">
                 Schema markup
               </h2>
-              <p className="mb-4 text-sm text-stone-600">
+              <p className="mb-4 text-sm text-ink-muted">
                 Paste inside your page&apos;s{" "}
-                <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                <code className="rounded bg-paper-soft px-1.5 py-0.5 text-xs">
                   &lt;script type=&quot;application/ld+json&quot;&gt;
                 </code>{" "}
                 tag.

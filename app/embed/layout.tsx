@@ -10,9 +10,5 @@ export const metadata: Metadata = {
 export default function EmbedLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="en">
-      <body className="bg-white">{children}</body>
-    </html>
-  );
+  return <>{children}</>;
 }
